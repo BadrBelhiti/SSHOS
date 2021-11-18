@@ -46,6 +46,10 @@ int get_offset(int col, int row) {
     return 2 * (row * MAX_COLS + col);
 }
 
+int move_offset_to_new_line(int offset) {
+    return get_offset(0, get_row_from_offset(offset) + 1);
+}
+
 void print_string(char *string) {
     int offset = get_cursor();
     int i = 0;
