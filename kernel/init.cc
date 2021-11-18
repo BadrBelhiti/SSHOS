@@ -16,6 +16,7 @@
 #include "stdint.h"
 #include "tss.h"
 #include "sys.h"
+#include "keyboard.h"
 
 struct Stack {
     static constexpr int BYTES = 4096;
@@ -140,6 +141,7 @@ extern "C" void kernelInit(void) {
     }
 
     VMM::per_core_init();
+    Keyboard::init();
 
     // Initialize the PIT
     Pit::init();
