@@ -3,8 +3,12 @@
 #include "keyboard.h"
 #include "machine.h"
 #include "atomic.h"
+#include "libk.h"
 
-Shell::Shell() {}
+Shell::Shell() {
+    this->cmd_runner = new CommandRunner();
+    this->cmd_runner->shell = this;
+}
 
 void Shell::start() {
     memcpy(buffer, "root:/", 6);
@@ -29,8 +33,7 @@ void Shell::start() {
 }
 
 void Shell::refresh() {
-    // bool was = Interrupts::disable();
-    clear_screen();
+    clear_screen(this->config);
 
     uint32_t index = 0;
     uint32_t video_cursor = 0;
@@ -38,7 +41,7 @@ void Shell::refresh() {
         if (buffer[index] == '\n') {
             video_cursor = move_offset_to_new_line(video_cursor);
         } else {
-            set_char_at_video_memory(buffer[index], video_cursor);
+            set_char_at_video_memory(buffer[index], video_cursor, this->config);
             video_cursor += 2;
         }
 
@@ -46,7 +49,19 @@ void Shell::refresh() {
     }
 
     set_cursor(video_cursor);
-    // Interrupts::restore(was);
+}
+
+void Shell::println(char *str) {
+    bool refreshNeeded = false;
+    for (uint32_t i = 0; str[i] != 0; i++) {
+        refreshNeeded |= handle_normal(str[i]);
+    }
+
+    refreshNeeded |= handle_normal('\n');
+
+    if (refreshNeeded) {
+        refresh();
+    }
 }
 
 bool Shell::handle_backspace() {
@@ -59,21 +74,32 @@ bool Shell::handle_backspace() {
 }
 
 bool Shell::handle_return() {
+    // Calculations needed before advancing cursor
     uint32_t cmd_end = cursor;
 
-    // Echo command
     uint32_t cmd_size = cmd_end - curr_cmd_start;
 
+    // Append line break
+    buffer[cursor++] = '\n';
+
+    // Get current command
+    char *cmd = new char[cmd_size + 1];
+    cmd[cmd_size] = 0;
+
+    memcpy(cmd, &buffer[curr_cmd_start], cmd_size);
+
     if (cmd_size != 0) {
-        buffer[cursor++] = '\n';
+        bool successful = cmd_runner->execute(cmd);
+        if (!successful) {
+            // println((char*) "Command failed");
+        }
     }
 
-    memcpy(&buffer[cursor], &buffer[curr_cmd_start], cmd_size);
+    delete[] cmd;
 
-    cursor += cmd_size;
-
-    memcpy(&buffer[cursor], "\nroot:/", 7);
-    cursor += 7;
+    // TODO: Print prefix based on current working directory and current user
+    memcpy(&buffer[cursor], "root:/", 6);
+    cursor += 6;
     curr_cmd_start = cursor;
 
     return true;

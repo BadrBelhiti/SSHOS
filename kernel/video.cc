@@ -1,4 +1,5 @@
 #include "video.h"
+#include "shell.h"
 
 unsigned char port_byte_in(unsigned short port) {
     unsigned char result;
@@ -26,10 +27,10 @@ int get_cursor() {
     return offset * 2;
 }
 
-void set_char_at_video_memory(char character, int offset) {
+void set_char_at_video_memory(char character, int offset, ShellConfig config) {
     unsigned char *vidmem = (unsigned char *) VIDEO_ADDRESS;
     vidmem[offset] = character;
-    vidmem[offset + 1] = WHITE_ON_BLACK;
+    vidmem[offset + 1] = config.theme;
 }
 
 void clear_char(int offset) {
@@ -50,20 +51,9 @@ int move_offset_to_new_line(int offset) {
     return get_offset(0, get_row_from_offset(offset) + 1);
 }
 
-void print_string(char *string) {
-    int offset = get_cursor();
-    int i = 0;
-    while (string[i] != 0) {
-        set_char_at_video_memory(string[i], offset);
-        i++;
-        offset += 2;
-    }
-    set_cursor(offset);
-}
-
-void clear_screen() {
+void clear_screen(ShellConfig config) {
     for (int i = 0; i < MAX_COLS * MAX_ROWS; ++i) {
-        set_char_at_video_memory(' ', i * 2);
+        set_char_at_video_memory(' ', i * 2, config);
     }
     set_cursor(get_offset(0, 0));
 }

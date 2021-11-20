@@ -14,32 +14,32 @@ char get_key() {
 
 void Keyboard::init() {
     /* LETTERS */
-    scancodes[0x9E] = 'A';
-    scancodes[0xB0] = 'B';
-    scancodes[0xAE] = 'C';
-    scancodes[0xA0] = 'D';
-    scancodes[0x92] = 'E';
-    scancodes[0xA1] = 'F';
-    scancodes[0xA2] = 'G';
-    scancodes[0xA3] = 'H';
-    scancodes[0x97] = 'I';
-    scancodes[0xA4] = 'J';
-    scancodes[0xA5] = 'K';
-    scancodes[0xA6] = 'L';
-    scancodes[0xB2] = 'M';
-    scancodes[0xB1] = 'N';
-    scancodes[0x98] = 'O';
-    scancodes[0x99] = 'P';
-    scancodes[0x90] = 'Q';
-    scancodes[0x93] = 'R';
-    scancodes[0x9F] = 'S';
-    scancodes[0x94] = 'T';
-    scancodes[0x96] = 'U';
-    scancodes[0xAF] = 'V';
-    scancodes[0x91] = 'W';
-    scancodes[0xAD] = 'X';
-    scancodes[0x95] = 'Y';
-    scancodes[0xAC] = 'Z';
+    scancodes[0x9E] = 'a';
+    scancodes[0xB0] = 'b';
+    scancodes[0xAE] = 'c';
+    scancodes[0xA0] = 'd';
+    scancodes[0x92] = 'e';
+    scancodes[0xA1] = 'f';
+    scancodes[0xA2] = 'g';
+    scancodes[0xA3] = 'h';
+    scancodes[0x97] = 'i';
+    scancodes[0xA4] = 'j';
+    scancodes[0xA5] = 'k';
+    scancodes[0xA6] = 'l';
+    scancodes[0xB2] = 'm';
+    scancodes[0xB1] = 'n';
+    scancodes[0x98] = 'o';
+    scancodes[0x99] = 'p';
+    scancodes[0x90] = 'q';
+    scancodes[0x93] = 'r';
+    scancodes[0x9F] = 's';
+    scancodes[0x94] = 't';
+    scancodes[0x96] = 'u';
+    scancodes[0xAF] = 'v';
+    scancodes[0x91] = 'w';
+    scancodes[0xAD] = 'x';
+    scancodes[0x95] = 'y';
+    scancodes[0xAC] = 'z';
 
     /* USEFUL KEYS */
     scancodes[0x9C] = RETURN;
