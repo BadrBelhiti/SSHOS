@@ -17,7 +17,7 @@ namespace PhysMem {
     static uint32_t avail;
     static uint32_t limit;
 
-    uint32_t alloc_frame(bool panicIfOut) {
+    uint32_t alloc_frame() {
         LockGuard g{lock};
 
         uint32_t p;
@@ -27,8 +27,7 @@ namespace PhysMem {
             firstFree = firstFree->next;
         } else {
             if (avail == limit) {
-                if (panicIfOut) Debug::panic("no more frames");
-                else return -1;
+                Debug::panic("no more frames");
             }
             p = avail;
             avail += FRAME_SIZE;
@@ -36,7 +35,7 @@ namespace PhysMem {
 
         ASSERT(offset(p) == 0);
 
-        bzero((void*)p,FRAME_SIZE);
+        bzero((void*) p,FRAME_SIZE);
 
         return p;
     }

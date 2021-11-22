@@ -7,16 +7,7 @@
 #include "debug.h"
 #include "smp.h"
 #include "shared.h"
-#include "vmm.h"
-#include "tss.h"
-#include "ext2.h"
-#include "linked_list.h"
-
-class OpenFile;
-class Semaphore;
-
-template <typename T>
-class Future;
+#include "VMMLinkedList.h"
 
 namespace gheith {
 
@@ -39,40 +30,23 @@ namespace gheith {
 
     struct TCB {
         static Atomic<uint32_t> next_id;
-        Atomic<uint32_t> next_child_pid{10};
 
         const bool isIdle;
         const uint32_t id;
-        uint32_t pid;
 
         // queue stuff
         TCB* next;
-        TCB* prev;
 
         SaveArea saveArea;
 
         uint32_t* pd;
-
-        Shared<OpenFile> *open_files;
-
-        Shared<Semaphore> *semaphores;
-
-        TCB **children;
-
-        Shared<Ext2> fs;
-
-        TCB *parent;
-
-        Future<uint32_t> *exit;
-
-        Atomic<uint32_t> ref_count;
+        VMMLinkedList *vmmLinkedList;
 
         TCB(bool isIdle);
 
         virtual ~TCB();
 
         virtual void doYourThing() = 0;
-        virtual uint32_t interruptEsp() = 0;
     };
 
     extern "C" void gheith_contextSwitch(gheith::SaveArea *, gheith::SaveArea *, void* action, void* arg);
@@ -138,7 +112,6 @@ namespace gheith {
 
         activeThreads[core_id] = next_tcb;  // Why is this safe?
 
-        tss[core_id].esp0 = next_tcb->interruptEsp();
         gheith_contextSwitch(&me->saveArea,&next_tcb->saveArea,(void *)caller<F>,(void*)&f);
     }
 
@@ -157,10 +130,6 @@ namespace gheith {
                 delete[] stack;
                 stack = nullptr;
             }
-        }
-
-        uint32_t interruptEsp() override {
-            return (uint32_t) &stack[2047];
         }
     };
     
@@ -197,35 +166,7 @@ void thread(T work) {
 
     auto tcb = new TCBImpl<T>(work);
     schedule(tcb);
-}
 
-template <typename T>
-void childThread(gheith::TCB *parent, uint32_t* pd, uint32_t id, T work) {
-    using namespace gheith;
-
-    delete_zombies();
-    ASSERT(parent->children != nullptr);
-
-    auto tcb = new TCBImpl<T>(work);
-    tcb->pd = pd;
-    tcb->saveArea.cr3 = (uint32_t) pd;
-    tcb->parent = parent;
-    parent->children[id - 10] = tcb;
-    tcb->pid = id;
-    tcb->fs = parent->fs;
-
-    // Copy file descriptors
-    for (uint32_t i = 0; i < 10; i++) {
-        tcb->open_files[i] = parent->open_files[i];
-    }
-
-    // Copy semaphores
-   for (uint32_t i = 0; i < 10; i++) {
-        tcb->semaphores[i] = parent->semaphores[i];
-    }
-
-    ASSERT(tcb->exit != nullptr);
-    schedule(tcb);
 }
 
 

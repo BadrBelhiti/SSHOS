@@ -24,7 +24,7 @@ namespace PhysMem {
         return framedown(pa + FRAME_SIZE - 1);
     }
 
-    uint32_t alloc_frame(bool panicIfOut);
+    uint32_t alloc_frame();
 
     void dealloc_frame(uint32_t);
 }

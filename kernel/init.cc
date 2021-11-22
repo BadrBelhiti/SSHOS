@@ -14,9 +14,6 @@
 #include "physmem.h"
 #include "vmm.h"
 #include "stdint.h"
-#include "tss.h"
-#include "sys.h"
-#include "keyboard.h"
 
 struct Stack {
     static constexpr int BYTES = 4096;
@@ -107,9 +104,6 @@ extern "C" void kernelInit(void) {
         /* initialize VMM */
         VMM::global_init();
 
-        /* initialize system calls */
-        SYS::init();
-
         /* initialize the thread module */
         threadsInit();
 
@@ -141,16 +135,11 @@ extern "C" void kernelInit(void) {
     }
 
     VMM::per_core_init();
-    Keyboard::init();
 
     // Initialize the PIT
     Pit::init();
 
     auto id = SMP::me();
-
-    Debug::printf("| initializing TSS:ss0 for %d\n",id);
-    tss[id].ss0 = kernelSS;
-    ltr(tssDescriptorBase + id * 8);
 
     Debug::printf("| %d enabling interrupts, I'm scared\n",id);
     sti();

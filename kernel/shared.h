@@ -5,7 +5,6 @@
 
 template <typename T>
 class Shared {
-    public:
     T* ptr;
 
     void drop() {

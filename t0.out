@@ -1,3 +1,59 @@
+*** block size is 1024
+*** inode size is 128
+*** looking at /
+***      is a directory
+***      contains 7 entries
+***      has 4 links
+*** looking at /hello
+***      is a file
+***      contains 23 bytes
+***      has 1 links
+*** you can read files
+*** looking at /goodbye
+***      is a symbolic link
+***      link size is 5
+***       => hello
+*** looking at /not_there
+***      does not exist
+*** looking at /fotunes
+***      is a file
+***      contains 26637 bytes
+***      has 1 links
+***      "Oh, that's the name of the song, is it?" Alice said
+*** looking at /.
+***      is a directory
+***      contains 7 entries
+***      has 4 links
+*** looking at /..
+***      is a directory
+***      contains 7 entries
+***      has 4 links
+*** looking at /data
+***      is a directory
+***      contains 4 entries
+***      has 2 links
+*** looking at /data/data.txt
+***      is a file
+***      contains 33 bytes
+***      has 1 links
+*** this is nice
+*** we can read
+*** 
+*** w
+*** we
+*** we 
+*** we c
+*** we ca
+*** we can
+*** we can 
+*** we can r
+*** we can re
+*** we can rea
+*** we can read
+*** looking at /data/panic.txt
+***      is a file
+***      contains 1736 bytes
+***      has 1 links
 *** Don't panic
 *** 
 *** 
@@ -28,3 +84,4 @@
 ***                                      $$$$$$$$$$"
 ***                                       "$$$""  
 *** 
+*** passed 27 checks

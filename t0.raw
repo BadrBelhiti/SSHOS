@@ -1,3 +1,41 @@
+c[?7l[2J[0mSeaBIOS (version rel-1.13.0-48-gd9c812dda519-prebuilt.qemu.org)
+
+
+iPXE (http://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+07F8F290+07EEF290 CA00
+Press Ctrl-B to configure iPXE (PCI 00:03.0)...                                                                               
+
+
+Booting from Hard Disk..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+| What just happened? Why am I here?
+| Discovering my identity and features
+|     CPUID: AuthenticAMD
+|     has SSE3
+|     has MONITOR/MWAIT
+|     running on hypervisor
+| totalProcs 4
+| memSize 0x7fd0000 127MB
+| localAPIC fee00000
+| ioAPIC fec00000
+| heap range 0x100000 0x600000
+| switched to new UART
+| physical range 0x600000 0x7fd0000
+| pitInit freq 1000Hz
+| pitInit divider 59659
+| APIT running at 1000042334Hz
+| APIT counter=1000042 for 1000Hz
+| initialize 1
+| reset 1
+|      eip:0x8000
+| initialize 2
+| reset 2
+|      eip:0x8000
+| 1 enabling interrupts, I'm scared
+| initialize 3
+| 2 enabling interrupts, I'm scared
+| reset 3
+|      eip:0x8000
+| 3 enabling interrupts, I'm scared
+| 0 enabling interrupts, I'm scared
 *** block size is 1024
 *** inode size is 128
 *** looking at /
@@ -9,6 +47,7 @@
 ***      contains 23 bytes
 ***      has 1 links
 *** you can read files
+
 *** looking at /goodbye
 ***      is a symbolic link
 ***      link size is 5
@@ -38,6 +77,7 @@
 ***      has 1 links
 *** this is nice
 *** we can read
+
 *** 
 *** w
 *** we
@@ -84,4 +124,6 @@
 ***                                      $$$$$$$$$$"
 ***                                       "$$$""  
 *** 
+
 *** passed 27 checks
+shutdown
