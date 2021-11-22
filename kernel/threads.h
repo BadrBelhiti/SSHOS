@@ -11,6 +11,7 @@
 #include "tss.h"
 #include "ext2.h"
 #include "linked_list.h"
+#include "shell.h"
 
 class OpenFile;
 class Semaphore;
@@ -64,6 +65,8 @@ namespace gheith {
         TCB *parent;
 
         Future<uint32_t> *exit;
+
+        Shell *shell;
 
         Atomic<uint32_t> ref_count;
 

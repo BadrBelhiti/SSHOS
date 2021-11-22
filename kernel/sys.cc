@@ -478,6 +478,17 @@ int seek(int fd, uint32_t off) {
     return open_file->offset;
 }
 
+int println(char *str) {
+    TCB *me = current();
+
+    if (me->shell == nullptr) {
+        return -1;
+    }
+
+    me->shell->println(str);
+    return 0;
+}
+
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
     uint32_t *user_stack = (uint32_t*) frame[3];
 
@@ -524,6 +535,9 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
         // seek(int fd, off_t off)
         case 13:
             return seek(user_stack[1], user_stack[2]);
+        // println(char *str)
+        case 14:
+            return println((char*) user_stack[1]);
     }
 
     return 0;

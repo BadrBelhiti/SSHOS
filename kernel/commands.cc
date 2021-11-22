@@ -1,6 +1,7 @@
 #include "commands.h"
 #include "libk.h"
 #include "shell.h"
+#include "sys.h"
 
 CommandRunner::CommandRunner() {
 
@@ -17,6 +18,12 @@ bool CommandRunner::execute(char *cmd) {
     program_name[program_name_size] = 0;
     memcpy(program_name, cmd, program_name_size);
     
+    // Change format to /usr/bin/<program_name>
+    char full_program_name[9 + program_name_size + 1];
+    full_program_name[9 + program_name_size] = 0;
+    memcpy(full_program_name, "/usr/bin/", 9);
+    memcpy(full_program_name + 9, program_name, program_name_size);
+
     // Get args
     uint32_t curr_index = program_name_size;
     uint32_t argc = 1;
@@ -28,7 +35,7 @@ bool CommandRunner::execute(char *cmd) {
         curr_index++;
     }
 
-    char **argv = new char*[argc];
+    char **argv = new char*[argc + 1];
 
     // Reset for second loop
     uint32_t arg_begin = program_name_size + 1;
@@ -52,28 +59,35 @@ bool CommandRunner::execute(char *cmd) {
         curr_index++;
     }
 
+    // execl requires null terminator arg
+    argv[curr_arg] = 0;
+
     // Use args to execute command
     // TODO: This is only for testing. In reality, commands should be user programs.
-    if (K::streq(program_name, "color")) {
-        if (argc != 2) {
-            shell->println((char*) "usage: color <DEFAULT|WINDOWS>");
-            return false;
-        } else {
-            if (K::streq(argv[1], "default")) {
-                shell->config.theme = 0x0F;
-                shell->refresh();
-                return true;
-            }
+    // if (K::streq(program_name, "color")) {
+    //     if (argc != 2) {
+    //         shell->println((char*) "usage: color <DEFAULT|WINDOWS>");
+    //         return false;
+    //     } else {
+    //         if (K::streq(argv[1], "default")) {
+    //             shell->config.theme = 0x0F;
+    //             shell->refresh();
+    //             return true;
+    //         }
 
-            if (K::streq(argv[1], "windows")) {
-                shell->config.theme = 0x1F;
-                shell->refresh();
-                return true;
-            }
+    //         if (K::streq(argv[1], "windows")) {
+    //             shell->config.theme = 0x1F;
+    //             shell->refresh();
+    //             return true;
+    //         }
 
-            shell->println((char*) "usage: color <DEFAULT|WINDOWS>");
-        }
-    }
+    //         shell->println((char*) "usage: color <DEFAULT|WINDOWS>");
+    //     }
+    // }
+
+    // Try to execute command
+    execl(full_program_name, (const char**) argv);
+    shell->println((char*) "exec failed");
 
     return false;
 }

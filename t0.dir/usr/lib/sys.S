@@ -112,3 +112,10 @@ seek:
 	mov $13,%eax
 	int $48
 	ret
+
+	# int println(char *str)
+	.global println
+println:
+	mov $14,%eax
+	int $48
+	ret

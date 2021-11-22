@@ -6,4 +6,6 @@ public:
     static void init(void);
 };
 
+int execl(const char* path, const char** args);
+
 #endif
