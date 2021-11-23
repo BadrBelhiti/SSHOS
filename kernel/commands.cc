@@ -2,12 +2,17 @@
 #include "libk.h"
 #include "shell.h"
 #include "sys.h"
+#include "threads.h"
+
+using namespace gheith;
+
 
 CommandRunner::CommandRunner() {
 
 }
 
 bool CommandRunner::execute(char *cmd) {
+    // TCB *me = current();
     // Get program name
     uint32_t program_name_size = 0;
     while (cmd[program_name_size] != 0 && cmd[program_name_size] != ' ') {
@@ -20,9 +25,21 @@ bool CommandRunner::execute(char *cmd) {
     
     // Change format to /usr/bin/<program_name>
     char full_program_name[9 + program_name_size + 1];
-    full_program_name[9 + program_name_size] = 0;
     memcpy(full_program_name, "/usr/bin/", 9);
     memcpy(full_program_name + 9, program_name, program_name_size);
+    full_program_name[9 + program_name_size] = 0;
+    shell->println(full_program_name);
+
+    // Get program vnode
+    /*
+    Shared<Node> program_vnode = me->fs->find(me->fs->root, full_program_name);
+    if (program_vnode == nullptr) {
+        shell->println("Program does not exist");
+        return false;
+    }
+
+    return true;
+    */
 
     // Get args
     uint32_t curr_index = program_name_size;
@@ -36,6 +53,7 @@ bool CommandRunner::execute(char *cmd) {
     }
 
     char **argv = new char*[argc + 1];
+    argv[argc] = 0;
 
     // Reset for second loop
     uint32_t arg_begin = program_name_size + 1;
@@ -59,35 +77,7 @@ bool CommandRunner::execute(char *cmd) {
         curr_index++;
     }
 
-    // execl requires null terminator arg
-    argv[curr_arg] = 0;
-
-    // Use args to execute command
-    // TODO: This is only for testing. In reality, commands should be user programs.
-    // if (K::streq(program_name, "color")) {
-    //     if (argc != 2) {
-    //         shell->println((char*) "usage: color <DEFAULT|WINDOWS>");
-    //         return false;
-    //     } else {
-    //         if (K::streq(argv[1], "default")) {
-    //             shell->config.theme = 0x0F;
-    //             shell->refresh();
-    //             return true;
-    //         }
-
-    //         if (K::streq(argv[1], "windows")) {
-    //             shell->config.theme = 0x1F;
-    //             shell->refresh();
-    //             return true;
-    //         }
-
-    //         shell->println((char*) "usage: color <DEFAULT|WINDOWS>");
-    //     }
-    // }
-
-    // Try to execute command
     execl(full_program_name, (const char**) argv);
-    shell->println((char*) "exec failed");
 
     return false;
 }

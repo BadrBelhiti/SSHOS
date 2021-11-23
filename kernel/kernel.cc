@@ -8,7 +8,6 @@ using namespace gheith;
 void kernelMain(void) {
     // Create shell
     Shell shell{};
-    shell.start();
 
     // Mount file system
     Shared<Ide> ide = Shared<Ide>::make(1);
@@ -17,5 +16,8 @@ void kernelMain(void) {
     TCB *me = current();
     me->fs = fs;
     me->shell = &shell;
+
+    // Start shell
+    shell.start();
 }
 

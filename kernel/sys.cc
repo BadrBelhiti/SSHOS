@@ -335,11 +335,14 @@ int wait(int id, uint32_t *ptr) {
 
 int execl(const char* path, const char** args) {
     // Find program in disk
+    current()->shell->println((char*) "In exec");
     Shared<Node> program_vnode = find_by_absolute(path);
 
     if (program_vnode == nullptr) {
         return -1;
     }
+
+    
 
     // Start moving program args to last page
     char *cursor = (char*) 0xFFFFF000;
@@ -389,7 +392,10 @@ int execl(const char* path, const char** args) {
     user_stack[-1] = (uint32_t) stack_args;
     user_esp -= 8;
 
+    current()->shell->println((char*) "Here 1");
+
     // Jump to program
+    me->shell->println("Switching to user mode");
     switchToUser(eip, (uint32_t) user_esp, 0);
 
     return 0;
@@ -480,6 +486,7 @@ int seek(int fd, uint32_t off) {
 
 int println(char *str) {
     TCB *me = current();
+    me->shell->println("In syscall");
 
     if (me->shell == nullptr) {
         return -1;
@@ -491,6 +498,8 @@ int println(char *str) {
 
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
     uint32_t *user_stack = (uint32_t*) frame[3];
+    current()->shell->println("In sysHandler");
+    while (true);
 
     switch (eax) {
         // exit(int status_code)

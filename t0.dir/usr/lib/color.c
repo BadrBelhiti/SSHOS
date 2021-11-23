@@ -6,6 +6,6 @@ int main(int argc, char** argv) {
     
     println("In color now");
 
-    shutdown();
+    while (1);
     return 0;
 }

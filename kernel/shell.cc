@@ -51,7 +51,7 @@ void Shell::refresh() {
     set_cursor(video_cursor);
 }
 
-void Shell::println(char *str) {
+void Shell::println(const char *str) {
     bool refreshNeeded = false;
     for (uint32_t i = 0; str[i] != 0; i++) {
         refreshNeeded |= handle_normal(str[i]);

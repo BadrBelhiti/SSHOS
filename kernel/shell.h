@@ -21,7 +21,7 @@ class Shell {
         Shell();
         void start();
         void refresh();
-        void println(char *str);
+        void println(const char *str);
         bool handle_backspace();
         bool handle_return();
         bool handle_normal(char key);
