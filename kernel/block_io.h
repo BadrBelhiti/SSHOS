@@ -11,7 +11,7 @@
 //    - block size is a power of 2
 //    - block size is fixed
 //    - the caller is responsible for serializaing access (locking, etc)
-//    - the caller is responsible for ensuring that buffers assed in
+//    - the caller is responsible for ensuring that buffers passed in
 //      as arguments are large enough for the required operation
 //    - the caller is also responsibile for ensuring that all offsets
 //      and block numbers are in bounds:
@@ -23,6 +23,8 @@ class BlockIO {
 public:
     const uint32_t block_size;
     BlockIO(uint32_t block_size): block_size(block_size) {}
+
+    // virtual ~BlockIO() {}
 
     // get number of bytes
     virtual uint32_t size_in_bytes() = 0;

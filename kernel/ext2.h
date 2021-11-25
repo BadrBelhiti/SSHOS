@@ -4,124 +4,109 @@
 #include "ide.h"
 #include "shared.h"
 #include "atomic.h"
+#include "debug.h"
+#include "libk.h"
 
 struct SuperBlock {
-    uint32_t inodes_count;
-    uint32_t blocks_count;
-    uint32_t reserved_blocks_count;
-    uint32_t free_blocks_count;
-    uint32_t free_inodes_count;
-    uint32_t first_data_block;
-    uint32_t log_block_size;
-    uint32_t log_frag_size;
-    uint32_t blocks_per_group;
-    uint32_t frags_per_group;
-    uint32_t inodes_per_group;
-    uint32_t mtime;
-    uint32_t wtime;
-    uint16_t mnt_count;
-    uint16_t max_mnt_count;
-    uint16_t magic;
-    uint16_t state;
-    uint16_t errors;
-    uint16_t minor_rev_level;
-    uint32_t lastcheck;
-    uint32_t checkinterval;
-    uint32_t creator_os;
-    uint32_t rev_level;
-    uint16_t def_resuid;
-    uint16_t def_resgid;
-    uint32_t first_inode;
-    uint16_t inode_size;
-    uint16_t block_group_nr;
-    uint32_t feature_compat;
-    uint32_t feature_incompat;
-    uint32_t feature_ro_compat;
-    char uuid[16];
-    char volume_name[16];
-    uint32_t algo_bitmap;
+    uint32_t totalInodes;
+    uint32_t totalBlocks;
+    uint8_t notNeeded[16];
+    uint32_t blockSizeShift;
+    uint8_t notNeeded2[4];
+    uint32_t blocksPerGroup;
+    uint8_t notNeeded3[4];
+    uint32_t inodesPerGroup;
+    uint8_t notNeeded4[980];
 };
 
-struct BlockGroup {
-    uint32_t block_bitmap;
-    uint32_t inode_bitmap;
-    uint32_t inode_table;
-    uint16_t free_blocks_count;
-    uint16_t free_inodes_count;
-    uint16_t used_dirs_count;
-    uint16_t pad;
-    char reserved[12];
+struct BlockGroupDescriptor {
+    uint32_t blockUsageAddress;
+    uint32_t inodeUsageAddress;
+    uint32_t inodeTableAddress;
+    uint16_t availableBlocks;
+    uint16_t availableInodes;
+    uint8_t notNeeded2[16];
 };
 
-// just the bits
-struct NodeData {
-    uint16_t mode;
-    uint16_t uid;
-    uint32_t size_low;
-    uint32_t atime;
-    uint32_t ctime;
-    uint32_t mtime;
-    uint32_t dtime;
-    uint16_t gid;
-    uint16_t n_links;
-    uint32_t n_sectors;
-    uint32_t flags;
-    uint32_t os1;
-    uint32_t direct0;
-    uint32_t direct1;
-    uint32_t direct2;
-    uint32_t direct3;
-    uint32_t direct4;
-    uint32_t direct5;
-    uint32_t direct6;
-    uint32_t direct7;
-    uint32_t direct8;
-    uint32_t direct9;
-    uint32_t direct10;
-    uint32_t direct11;
-    uint32_t indirect_1;
-    uint32_t indirect_2;
-    uint32_t indirect_3;
-    uint32_t gen;
-    uint32_t reserved1;
-    uint32_t reserved2;
-    uint32_t fragment;
-    char os2[12];
+struct Inode {
+    uint16_t typesAndPermissions;
+    uint8_t notNeeded[2];
+    uint32_t sizeInBytes;
+    uint8_t notNeeded2[18];
+    uint16_t numHardLinks;
+    uint8_t notNeeded3[12];
+    uint32_t blockNumbers[15];
+    uint8_t notNeeded4[28];
+};
 
-    inline uint16_t get_type() {
-        return mode >> 12;
+class Node;
+
+// This class encapsulates the implementation of the Ext2 file system
+class Ext2 {
+    // The device on which the file system resides
+    Atomic<uint32_t> ref_count{0};
+
+public:
+    Shared<Node> root; // The root directory for this file system
+    Shared<Ide> ide;
+    SuperBlock *superBlock;
+    BlockGroupDescriptor *blockGroupTable;
+    char **inodeUsageBitmaps;
+    char **blockUsageBitmaps;
+
+public:
+    // Mount an existing file system residing on the given device
+    // Panics if the file system is invalid
+    Ext2(Shared<Ide> ide);
+
+    // Returns the block size of the file system. Doesn't have
+    // to match that of the underlying device
+    uint32_t get_block_size() {
+        // return 1024 << *((uint32_t *) (this->superBlock + 24));
+        return 1024 << superBlock->blockSizeShift;
     }
 
-    bool is_dir() {
-        return get_type() == 4;
+    // Returns the actual size of an i-node. Ext2 specifies that
+    // an i-node will have a minimum size of 128B but could have
+    // more bytes for extended attributes
+    uint32_t get_inode_size() {
+        return 128; // is this right?
     }
 
-    bool is_file() {
-        return get_type() == 8;
-    }
+    // If the given node is a directory, return a reference to the
+    // node linked to that name in the directory.
+    //
+    // Returns a null reference if "name" doesn't exist in the directory
+    //
+    // Panics if "dir" is not a directory
+    Shared<Node> find(Shared<Node> dir, const char* name);
 
-    bool is_symlink() {
-        return get_type() == 0xa;
-    }
-
-    void show(const char*);
+    friend class Shared<Ext2>;
 };
 
 // A wrapper around an i-node
 class Node : public BlockIO { // we implement BlockIO because we
                               // represent data
-
-    Shared<Ide> ide;
-    Atomic<uint32_t> ref_count;
-
+    Atomic<uint32_t> ref_count{0};
 public:
+    const uint32_t number; // i-number of this node
+    Inode *inode;
+    uint32_t type;
+    Ext2 *fileSystem;
 
-    // i-number of this node
-    const uint32_t number;
-    NodeData data;
+    Node(uint32_t block_size, uint32_t number, Ext2 *fileSystem) : BlockIO(block_size), number(number) {
+        uint32_t blockGroup = (number - 1) / fileSystem->superBlock->inodesPerGroup;
+        uint32_t inodeIndex = (number - 1) % fileSystem->superBlock->inodesPerGroup;
 
-    Node(Shared<Ide> ide, uint32_t number, uint32_t block_size) : BlockIO(block_size), ide(ide), ref_count(0), number(number) {
+        char *inode = new char[128];
+        uint32_t byteInodeTableAddress = fileSystem->blockGroupTable[blockGroup].inodeTableAddress * block_size;
+        uint32_t inodeOffset = byteInodeTableAddress + inodeIndex * 128;
 
+        fileSystem->ide->read_all(inodeOffset, 128, inode);
+
+        this->inode = (Inode *) inode;
+        this->type = this->inode->typesAndPermissions & 0xF000;
+        this->fileSystem = fileSystem;
     }
 
     virtual ~Node() {}
@@ -131,137 +116,91 @@ public:
     //    - for a directory, implementation dependent
     //    - for a symbolic link, the length of the name
     uint32_t size_in_bytes() override {
-        return data.size_low;
+        return inode->sizeInBytes;
     }
 
     // read the given block (panics if the block number is not valid)
     // remember that block size is defined by the file system not the device
-    void read_block(uint32_t number, char* buffer) override;
+    void read_block(uint32_t number, char* buffer) override {
+        if (number < 12) { // direct case
+            uint32_t blockAddress = inode->blockNumbers[number];
+            fileSystem->ide->read_all(blockAddress * block_size, block_size, buffer);
+        } else { // singly indirect case
+            uint32_t blockAddress = inode->blockNumbers[12];
+            fileSystem->ide->read_all(blockAddress * block_size, block_size, buffer);
+            number -= 12;
+            blockAddress = ((uint32_t *) buffer)[number];
+            fileSystem->ide->read_all(blockAddress * block_size, block_size, buffer);
+        }
+    }
 
-    inline uint16_t get_type() {
-        return data.get_type();
+    // returns the ext2 type of the node
+    uint32_t get_type() {
+        return type;
     }
 
     // true if this node is a directory
     bool is_dir() {
-        return data.is_dir();
+        return type == 0x4000;
     }
 
     // true if this node is a file
     bool is_file() {
-        return data.is_file();
+        return type == 0x8000;
     }
 
     // true if this node is a symbolic link
     bool is_symlink() {
-        return data.is_symlink();
+        return type == 0xA000;
     }
 
     // If this node is a symbolic link, fill the buffer with
-    // the name the link referes to.
+    // the name the link refers to.
     //
     // Panics if the node is not a symbolic link
     //
     // The buffer needs to be at least as big as the the value
-    // returned by size_in_byte()
-    void get_symbol(char* buffer);
+    // returned by size_in_bytes()
+    void get_symbol(char* buffer) {
+        // we have to use blocks to fetch the name
+        if (inode->sizeInBytes > 60) {
+            read_all(0, inode->sizeInBytes, buffer);
+        } else {
+            for (uint32_t i = 0; i < inode->sizeInBytes; i++) {
+                buffer[i] = ((char *) inode->blockNumbers)[i];
+            }
+            buffer[inode->sizeInBytes] = 0;
+        }
+    }
 
     // Returns the number of hard links to this node
     uint32_t n_links() {
-        return data.n_links;
+        return inode->numHardLinks;
     }
-
-    void show(const char* msg) {
-        data.show(msg);
-    }
-
-    template <typename Work>
-    void entries(Work work) {
-        ASSERT(is_dir());
-        uint32_t offset = 0;
-
-        while (offset < data.size_low) {
-            uint32_t inode;
-            read(offset,inode);
-            uint16_t total_size;
-            read(offset+4,total_size);
-            uint8_t name_length;
-            read(offset+6,name_length);
-            auto name = new char[name_length+1];
-            name[name_length] = 0;
-            auto cnt = read_all(offset+8,name_length,name);
-            ASSERT(cnt == name_length);
-            work(inode,name);
-            delete[] name;
-            offset += total_size;
-        }
-    }
-
-    uint32_t find(const char* name);
 
     // Returns the number of entries in a directory node
+    //
     // Panics if not a directory
-    uint32_t entry_count();
+    uint32_t entry_count() {
+        uint32_t entryCount = 0;
+        // char *buffer = new char[inode->sizeInBytes];
+        char *buffer = new char[inode->sizeInBytes];
+        char *initBuffer = buffer;
+        read_all(0, inode->sizeInBytes, buffer);
+
+        uint32_t curByte = 0;
+        while (curByte < inode->sizeInBytes) {
+            uint32_t entrySize = *((uint16_t *) (buffer + 4));
+            curByte += entrySize;
+            buffer += entrySize;
+            entryCount++;
+        }
+        return entryCount;
+
+        delete[] initBuffer;
+    }
 
     friend class Shared<Node>;
-};
-
-
-// This class encapsulates the implementation of the Ext2 file system
-class Ext2 {
-    // The device on which the file system resides
-    Shared<Ide> ide;
-public:
-    // The root directory for this file system
-    Shared<Node> root;
-private:
-    Atomic<uint32_t> ref_count;
-    uint32_t blockSize;
-    uint32_t numberOfNodes;
-    uint32_t numberOfBlocks;
-    uint32_t iNodeSize;
-    uint32_t nGroups;
-    uint32_t *iNodeTables;
-    uint32_t iNodesPerGroup;
-public:
-    // Mount an existing file system residing on the given device
-    // Panics if the file system is invalid
-    Ext2(Shared<Ide> ide);
-
-    friend class Shared<Ext2>;
-
-    // Returns the block size of the file system. Doesn't have
-    // to match that of the underlying device
-    uint32_t get_block_size() {
-        return blockSize;
-    }
-
-    // Returns the actual size of an i-node. Ext2 specifies that
-    // an i-node will have a minimum size of 128B but could have
-    // more bytes for extended attributes
-    uint32_t get_inode_size() {
-        return iNodeSize;
-    }
-
-    // Returns the node with the given i-number
-    Shared<Node> get_node(uint32_t number);
-
-    // If the given node is a directory, return a reference to the
-    // node linked to that name in the directory.
-    //
-    // Returns a null reference if "name" doesn't exist in the directory
-    //
-    // Panics if "dir" is not a directory
-    Shared<Node> find(Shared<Node> dir, const char* name) {
-        uint32_t number = dir->find(name);
-        if (number == 0) {
-            return Shared<Node>{};
-        } else {
-            //Debug::printf("found %s at %d\n",name,number);
-            return get_node(number);
-        }
-    }
-
 };
 
 #endif

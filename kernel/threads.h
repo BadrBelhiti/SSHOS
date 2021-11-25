@@ -7,7 +7,6 @@
 #include "debug.h"
 #include "smp.h"
 #include "shared.h"
-#include "VMMLinkedList.h"
 
 namespace gheith {
 
@@ -39,8 +38,6 @@ namespace gheith {
 
         SaveArea saveArea;
 
-        uint32_t* pd;
-        VMMLinkedList *vmmLinkedList;
 
         TCB(bool isIdle);
 

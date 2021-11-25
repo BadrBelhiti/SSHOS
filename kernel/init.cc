@@ -11,8 +11,6 @@
 #include "pit.h"
 #include "idt.h"
 #include "crt.h"
-#include "physmem.h"
-#include "vmm.h"
 #include "stdint.h"
 
 struct Stack {
@@ -34,7 +32,6 @@ bool onHypervisor = true;
 
 static constexpr uint32_t HEAP_START = 1 * 1024 * 1024;
 static constexpr uint32_t HEAP_SIZE = 5 * 1024 * 1024;
-static constexpr uint32_t VMM_FRAMES = HEAP_START + HEAP_SIZE;
 
 extern "C" void kernelInit(void) {
 
@@ -98,12 +95,6 @@ extern "C" void kernelInit(void) {
         /* running global constructors */
         CRT::init();
 
-        /* initialize physmem */
-        PhysMem::init(VMM_FRAMES, kConfig.memSize - VMM_FRAMES);
-
-        /* initialize VMM */
-        VMM::global_init();
-
         /* initialize the thread module */
         threadsInit();
 
@@ -133,8 +124,6 @@ extern "C" void kernelInit(void) {
         SMP::running.fetch_add(1);
         SMP::init(false);
     }
-
-    VMM::per_core_init();
 
     // Initialize the PIT
     Pit::init();

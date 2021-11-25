@@ -45,37 +45,4 @@ public:
         
 };
 
-namespace gheith {
-
-    template <typename Out, typename Work>
-    struct StreamImpl : public TCBWithStack {
-        Work work;
-        Shared<BoundedBuffer<Out>> buffer;
-    
-        StreamImpl(uint32_t N, Work work) : TCBWithStack(), work(work), buffer(Shared<BoundedBuffer<Out>>::make(N)) {
-        }
-
-        ~StreamImpl() {
-        }
-
-        void doYourThing() override {
-            work(buffer);
-        }
-    };
-
-}
-
-template <typename Out, typename Work>
-Shared<BoundedBuffer<Out>> stream(uint32_t N, Work work) {
-    using namespace gheith;
-
-    delete_zombies();
-
-    auto tcb = new StreamImpl<Out,Work>(N,work);
-    auto b = tcb->buffer;
-    schedule(tcb);
-    return b;
-
-}
-
 #endif

@@ -6,10 +6,9 @@
 #include "ext2.h"
 #include "shared.h"
 #include "threads.h"
-#include "vmm.h"
+
 
 namespace gheith {
-
     Atomic<uint32_t> TCB::next_id{0};
 
     TCB** activeThreads;
@@ -27,7 +26,6 @@ namespace gheith {
 
     void entry() {
         auto me = current();
-        vmm_on((uint32_t)me->pd);
         sti();
         me->doYourThing();
         stop();
@@ -56,18 +54,6 @@ namespace gheith {
 
     TCB::TCB(bool isIdle) : isIdle(isIdle), id(next_id.fetch_add(1)) {
         saveArea.tcb = this;
-        saveArea.cr3 = PhysMem::alloc_frame();
-
-        pd = (uint32_t *) saveArea.cr3;
-        // uint32_t numDirectoryEntries = PhysMem::FRAME_SIZE / sizeof(uint32_t);
-        uint32_t numDirectoryEntries = 32;
-        for (uint32_t globalIndex = 0; globalIndex < numDirectoryEntries; globalIndex++) {
-            pd[globalIndex] = VMM::globalPD[globalIndex];
-        }
-
-        VMM::map_page(PhysMem::ppn(kConfig.ioAPIC), PhysMem::ppn(kConfig.ioAPIC), pd);
-        VMM::map_page(PhysMem::ppn(kConfig.localAPIC), PhysMem::ppn(kConfig.localAPIC), pd);
-        vmmLinkedList = new VMMLinkedList(kConfig.ioAPIC, kConfig.localAPIC, pd);
     }
 
     TCB::~TCB() {
@@ -105,7 +91,6 @@ void yield() {
 }
 
 void stop() {
-    // this uses a namespace
     using namespace gheith;
 
     while(true) {

@@ -1,180 +1,123 @@
 #include "ext2.h"
-#include "libk.h"
 
-#if 0
-template <typename T>
-void println(T& t) {
-    constexpr int N = sizeof(T);
-    char* p = (char*) &t;
-    for (int i=0; i<N; i++) {
-        Debug::printf("%c",p[i]);
-    }
-    Debug::printf("\n");
+uint32_t divisionRoundUp(uint32_t numerator, uint32_t denominator) { 
+    return (numerator + denominator - 1) / denominator;
 }
-#endif
 
-Ext2::Ext2(Shared<Ide> ide): ide(ide), root(), ref_count(0) {
-    SuperBlock sb;
+bool strEquals(const char *fileName, char *curName, uint8_t curNameLength) {
+    int i = 0;
+    while (i < curNameLength && fileName[i] != 0 && fileName[i] == curName[i]) {
+        i++;
+    }
 
-    ide->read(1024,sb);
+    // reached end of both strings
+    return i == curNameLength && fileName[i] == 0;
+}
 
-    iNodeSize = sb.inode_size;
-    iNodesPerGroup = sb.inodes_per_group;
-    numberOfNodes = sb.inodes_count;
-    numberOfBlocks = sb.blocks_count;
+Ext2::Ext2(Shared<Ide> ide) {
+    // initialize super block
+    this->ide = ide;
+    this->superBlock = new SuperBlock();
 
-    //Debug::printf("inodes_count %d\n",sb.inodes_count);
-    //Debug::printf("blocks_count %d\n",sb.blocks_count);
-    //Debug::printf("blocks_per_group %d\n",sb.blocks_per_group);
-    //Debug::printf("inode_size %d\n",sb.inode_size);
-    //Debug::printf("block_group_nr %d\n",sb.block_group_nr);
-    //Debug::printf("first_inode %d\n",sb.first_inode);
+    this->ide->read_all(1024, 1024, (char *) superBlock);
 
-    blockSize = uint32_t(1) << (sb.log_block_size + 10);
+    Debug::printf("total number of inodes: %d\n", superBlock->totalInodes);
+    Debug::printf("total number of blocks: %d\n", superBlock->totalBlocks);
+
+    // initialize block group table
+    // starts at block 1 for any block size greater than 1024
+    // block size of 1024 -> starts at block 2
+    uint32_t blockGroupTableAddress = get_block_size() == 1024 ? 2 * get_block_size() : get_block_size();
+    uint32_t numBlockGroups = divisionRoundUp(this->superBlock->totalBlocks, this->superBlock->blocksPerGroup);
+    this->blockGroupTable = new BlockGroupDescriptor[numBlockGroups];
+    this->ide->read_all(blockGroupTableAddress, numBlockGroups * 32, (char *) blockGroupTable);
+
+    // initialize inode and block bitmaps
+    this->inodeUsageBitmaps = new char*[numBlockGroups];
+    for (uint32_t i = 0; i < numBlockGroups; i++) {
+        // initialize inode bitmap
+        this->inodeUsageBitmaps[i] = new char[get_block_size()];
+        this->ide->read_all(blockGroupTable[i].inodeUsageAddress * get_block_size(), get_block_size(), inodeUsageBitmaps[i]);
+
+        // initialize block bitmap
+        this->blockUsageBitmaps[i] = new char[get_block_size()];
+        this->ide->read_all(blockGroupTable[i].blockUsageAddress * get_block_size(), get_block_size(), blockUsageBitmaps[i]);
+    }
     
-    nGroups = (sb.blocks_count + sb.blocks_per_group - 1) / sb.blocks_per_group;
-    //Debug::printf("nGroups = %d\n",nGroups);
-    ASSERT(nGroups * sb.blocks_per_group >= sb.blocks_count);
+    // read out number of allocated inodes for all block groups
 
-    auto superBlockNumber = 1024 / blockSize;
-    //Debug::printf("super block number %d\n",superBlockNumber);
-
-    auto groupTableNumber = superBlockNumber + 1;
-    //Debug::printf("group table number %d\n",groupTableNumber);
-
-    auto groupTableSize = sizeof(BlockGroup) * nGroups;
-    //Debug::printf("group table size %d\n",groupTableSize);
-
-    auto groupTable = new BlockGroup[nGroups];
-    auto cnt = ide->read_all(groupTableNumber * blockSize, groupTableSize, (char*) groupTable);
-    ASSERT(cnt == groupTableSize);
-
-    iNodeTables = new uint32_t[nGroups];
-
-    for (uint32_t i=0; i < nGroups; i++) {
-        auto g = &groupTable[i];
-
-        iNodeTables[i] = g->inode_table;
-
-        //Debug::printf("group #%d\n",i);
-        //Debug::printf("    block_bitmap %d\n",g->block_bitmap);
-        //Debug::printf("    inode_bitmap %d\n",g->inode_bitmap);
-        //Debug::printf("    inode_table %d\n",g->inode_table);
-
-    }
-
-    //Debug::printf("========\n");
-    //Debug::printf("iNodeSize %d\n",iNodeSize);
-    //Debug::printf("nGroups %d\n",nGroups);
-    //Debug::printf("iNodesPerGroup %d\n",iNodesPerGroup);
-    //Debug::printf("numberOfNodes %d\n",numberOfNodes);
-    //Debug::printf("numberOfBlocks %d\n",numberOfBlocks);
-    //Debug::printf("blockSize %d\n",blockSize);
-    //for (unsigned i = 0; i < nGroups; i++) {
-    //    Debug::printf("iNodeTable[%d] %d\n",i,iNodeTables[i]);
-    //}
-
-    //root = new Node(ide,2,blockSize);
-
-    root = get_node(2);
-
-    //root->show("root");
-
-    //root->entries([](uint32_t inode, char* name) {
-    //    Debug::printf("%d %s\n",inode,name);
-    //});
-
-
-
-    //println(sb.uuid);
-    //println(sb.volume_name);
-}
-
-Shared<Node> Ext2::get_node(uint32_t number) {
-    ASSERT(number > 0);
-    ASSERT(number <= numberOfNodes);
-    auto index = number - 1;
-
-    auto groupIndex = index / iNodesPerGroup;
-    //Debug::printf("groupIndex %d\n",groupIndex);
-    ASSERT(groupIndex < nGroups);
-    auto indexInGroup = index % iNodesPerGroup;
-    auto iTableBase = iNodeTables[groupIndex];
-    ASSERT(iTableBase <= numberOfBlocks);
-    //Debug::printf("iTableBase %d\n",iTableBase);
-    auto nodeOffset = iTableBase * blockSize + indexInGroup * iNodeSize;
-    //Debug::printf("nodeOffset %d\n",nodeOffset);
-
-    auto out = Shared<Node>::make(ide,number,blockSize);
-    ide->read(nodeOffset,out->data);
-    return out;
-}
-
-
-////////////// NodeData //////////////
-
-void NodeData::show(const char* what) {
-    Debug::printf("%s\n",what);
-    Debug::printf("    mode 0x%x\n",mode);
-    Debug::printf("    uid %d\n",uid);
-    Debug::printf("    gif %d\n",gid);
-    Debug::printf("    n_links %d\n",n_links);
-    Debug::printf("    n_sectors %d\n",n_sectors);
-}
-
-///////////// Node /////////////
-
-void Node::get_symbol(char* buffer) {
-    ASSERT(is_symlink());
-    auto sz = size_in_bytes();
-    if (sz <= 60) {
-        memcpy(buffer,&data.direct0,sz);
-    } else {
-        auto cnt = read_all(0,sz,buffer);
-        ASSERT(cnt == sz);
-    }
-}
-
-void Node::read_block(uint32_t index, char* buffer) {
-    ASSERT(index < data.n_sectors / (block_size / 512));
-
-    auto refs_per_block = block_size / 4;
-
-    uint32_t block_index;
-
-    if (index < 12) {
-        uint32_t* direct = &data.direct0;
-        block_index = direct[index];
-    } else if (index < (12 + refs_per_block)) {
-        ide->read(data.indirect_1 * block_size + (index - 12) * 4,block_index);
-
-    } else {
-        block_index = 0;
-        Debug::panic("index = %d\n",index);
-    }
-
-    auto cnt = ide->read_all(block_index * block_size, block_size,buffer);
-    ASSERT(cnt == block_size);
-}
-
-uint32_t Node::find(const char* name) {
-    uint32_t out = 0;
-
-    entries([&out,name](uint32_t number, const char* nm) {
-        if (K::streq(name,nm)) {
-            out = number;
+    Debug::printf("Checking inode allocations\n");
+    // iterate over over every inode allocation
+    uint32_t inodeNumber = 0;
+    for (uint32_t i = 0; i < 1; i++) {
+        Debug::printf("Inode bitmap block address: %d\n", blockGroupTable[i].blockUsageAddress);
+        char *blockUsageBitmap = blockUsageBitmaps[i];
+        Debug::printf("available inodes: %d\n", blockGroupTable[i].availableBlocks);
+        // iterate over each byte in block
+        uint32_t numBlocksFound = 0;
+        for (uint32_t j = 0; j < 1024 && inodeNumber < 5120; j++) {
+            // iterate over each bit
+            // Debug::printf("cur byte address: %d\n", &inodeUsageBitmap[j]);
+            // Debug::printf("cur byte: %d\n", inodeUsageBitmap[j]);
+            // Debug::printf("curByte: %x\n", curByte);
+            for (int k = 8; k >= 0; k--) {
+                // allocated inode
+                if ((blockUsageBitmap[j] >> k) & 1) {
+                    numBlocksFound++;
+                }
+                inodeNumber++;
+            }
         }
-    });
+        Debug::printf("number of blocks found: %d\n", numBlocksFound);
+    }
 
-    return out;
+    // Debug::printf("Checking block allocations\n");
+    // // iterate over over every block allocation
+    // uint32_t blockNumber = 0;
+    // for (uint32_t i = 0; i < numBlockGroups; i++) {
+    //     char *blockUsageBitmap = (char *) (blockGroupTable[i].blockUsageAddress * get_block_size());
+    //     Debug::printf("Block usage bitmap address: %u\n", blockUsageBitmap);
+
+    //     // iterate over each byte in block
+    //     for (uint32_t j = 0; j < 1024; j++) {
+    //         // iterate over each bit
+    //         uint8_t curByte = blockUsageBitmap[j];
+    //         for (int k = 8; k >= 0; k--) {
+    //             // allocated inode
+    //             if ((curByte >> k) & 1) {
+    //                 Debug::printf("found an allocated block!! block number :: %d\n", blockNumber);
+    //             }
+    //             blockNumber++;
+    //         }
+    //     }
+    // }
+
+    
+
+    // initialize root directory inode
+    this->root = new Node(get_block_size(), 2, this); // root inode number is 2
 }
 
-uint32_t Node::entry_count() {
-    ASSERT(is_dir());
-    uint32_t count = 0;
-    entries([&count](uint32_t,const char*) {
-        count += 1;
-    });
-    return count;
-}
+Shared<Node> Ext2::find(Shared<Node> dir, const char* name) {
+    char *buffer = new char[dir->inode->sizeInBytes];
+    dir->read_all(0, dir->inode->sizeInBytes, buffer);
 
+    uint32_t curByte = 0;
+    bool fileFound = false;
+    uint32_t foundInodeNumber = 0;
+    uint32_t entrySize = 0;
+    uint8_t curNameLength = 0;
+    while (curByte < dir->inode->sizeInBytes && !fileFound) {
+        entrySize = *((uint16_t *) (buffer + 4));
+        curNameLength = (uint8_t) buffer[6];
+        if (strEquals(name, buffer + 8, curNameLength)) {
+            foundInodeNumber = *((uint32_t *) buffer);
+            fileFound = true;
+        }
+        curByte += entrySize;
+        buffer += entrySize;
+    }
+
+    Node *foundNode = fileFound ? new Node(get_block_size(), foundInodeNumber, this) : nullptr;
+    return Shared<Node>{foundNode};
+}
