@@ -5,7 +5,7 @@ iPXE (http://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+07F8F290+07EEF290 CA00
 Press Ctrl-B to configure iPXE (PCI 00:03.0)...                                                                               
 
 
-Booting from Hard Disk..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Booting from Hard Disk..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | What just happened? Why am I here?
 | Discovering my identity and features
 |     CPUID: AuthenticAMD
@@ -20,8 +20,8 @@ Booting from Hard Disk..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | switched to new UART
 | pitInit freq 1000Hz
 | pitInit divider 59659
-| APIT running at 1000042056Hz
-| APIT counter=1000042 for 1000Hz
+| APIT running at 1000043361Hz
+| APIT counter=1000043 for 1000Hz
 | initialize 1
 | reset 1
 |      eip:0x8000
@@ -29,20 +29,18 @@ Booting from Hard Disk..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | reset 2
 |      eip:0x8000
 | 1 enabling interrupts, I'm scared
-| 2 enabling interrupts, I'm scared
 | initialize 3
 | reset 3
 |      eip:0x8000
+| 2 enabling interrupts, I'm scared
 | 3 enabling interrupts, I'm scared
 | 0 enabling interrupts, I'm scared
 total number of inodes: 10240
 total number of blocks: 10240
-adsdsad: 5
-adsdsad: 8197
-Checking inode allocations
-Inode bitmap block address: 3
-available inodes: 7535
-number of blocks found: 739
+Blocks per group: 8192
+Checking block allocations
+available blocks: 1403
+Blocks found: 645
 *** block size is 1024
 *** inode size is 128
 *** looking at /

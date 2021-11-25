@@ -24,6 +24,9 @@ Ext2::Ext2(Shared<Ide> ide) {
     Debug::printf("total number of inodes: %d\n", superBlock->totalInodes);
     Debug::printf("total number of blocks: %d\n", superBlock->totalBlocks);
 
+    Debug::printf("Blocks per group: %d\n", superBlock->blocksPerGroup);
+     
+
     // initialize block group table
     // starts at block 1 for any block size greater than 1024
     // block size of 1024 -> starts at block 2
@@ -46,53 +49,27 @@ Ext2::Ext2(Shared<Ide> ide) {
     
     // read out number of allocated inodes for all block groups
 
-    Debug::printf("Checking inode allocations\n");
+    Debug::printf("Checking block allocations\n");
     // iterate over over every inode allocation
-    uint32_t inodeNumber = 0;
-    for (uint32_t i = 0; i < 1; i++) {
-        Debug::printf("Inode bitmap block address: %d\n", blockGroupTable[i].blockUsageAddress);
+    for (uint32_t i = 1; i <= 1; i++) {
         char *blockUsageBitmap = blockUsageBitmaps[i];
-        Debug::printf("available inodes: %d\n", blockGroupTable[i].availableBlocks);
+        Debug::printf("available blocks: %d\n", blockGroupTable[i].availableBlocks);
         // iterate over each byte in block
         uint32_t numBlocksFound = 0;
-        for (uint32_t j = 0; j < 1024 && inodeNumber < 5120; j++) {
+        uint32_t blockNumber = 0;
+        for (uint32_t j = 0; j < 1024 && blockNumber < 2048; j++) {
             // iterate over each bit
-            // Debug::printf("cur byte address: %d\n", &inodeUsageBitmap[j]);
-            // Debug::printf("cur byte: %d\n", inodeUsageBitmap[j]);
-            // Debug::printf("curByte: %x\n", curByte);
-            for (int k = 8; k >= 0; k--) {
+            for (int k = 7; k >= 0; k--) {
                 // allocated inode
                 if ((blockUsageBitmap[j] >> k) & 1) {
                     numBlocksFound++;
                 }
-                inodeNumber++;
+                blockNumber++;
             }
         }
-        Debug::printf("number of blocks found: %d\n", numBlocksFound);
-    }
 
-    // Debug::printf("Checking block allocations\n");
-    // // iterate over over every block allocation
-    // uint32_t blockNumber = 0;
-    // for (uint32_t i = 0; i < numBlockGroups; i++) {
-    //     char *blockUsageBitmap = (char *) (blockGroupTable[i].blockUsageAddress * get_block_size());
-    //     Debug::printf("Block usage bitmap address: %u\n", blockUsageBitmap);
-
-    //     // iterate over each byte in block
-    //     for (uint32_t j = 0; j < 1024; j++) {
-    //         // iterate over each bit
-    //         uint8_t curByte = blockUsageBitmap[j];
-    //         for (int k = 8; k >= 0; k--) {
-    //             // allocated inode
-    //             if ((curByte >> k) & 1) {
-    //                 Debug::printf("found an allocated block!! block number :: %d\n", blockNumber);
-    //             }
-    //             blockNumber++;
-    //         }
-    //     }
-    // }
-
-    
+        Debug::printf("Blocks found: %d\n", numBlocksFound);
+    }    
 
     // initialize root directory inode
     this->root = new Node(get_block_size(), 2, this); // root inode number is 2
