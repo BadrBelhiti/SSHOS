@@ -218,7 +218,6 @@ Shared<Node> Ext2::find(Shared<Node> dir, const char* name) {
         buffer += entrySize;
     }
 
-    Debug::printf("foundInodeNumber: %d\n", foundInodeNumber);
     Node *foundNode = fileFound ? new Node(get_block_size(), foundInodeNumber, this) : nullptr;
     return Shared<Node>{foundNode};
 }

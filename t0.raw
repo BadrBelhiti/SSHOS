@@ -5,7 +5,7 @@ iPXE (http://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+07F8F290+07EEF290 CA00
 Press Ctrl-B to configure iPXE (PCI 00:03.0)...                                                                               
 
 
-Booting from Hard Disk..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Booting from Hard Disk..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | What just happened? Why am I here?
 | Discovering my identity and features
 |     CPUID: AuthenticAMD
@@ -20,8 +20,8 @@ Booting from Hard Disk..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | switched to new UART
 | pitInit freq 1000Hz
 | pitInit divider 59659
-| APIT running at 1000043616Hz
-| APIT counter=1000043 for 1000Hz
+| APIT running at 1000041557Hz
+| APIT counter=1000041 for 1000Hz
 | initialize 1
 | reset 1
 |      eip:0x8000
@@ -33,74 +33,35 @@ Booting from Hard Disk..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | reset 3
 |      eip:0x8000
 | 2 enabling interrupts, I'm scared
-| 3 enabling interrupts, I'm scared
 | 0 enabling interrupts, I'm scared
+| 3 enabling interrupts, I'm scared
 total number of inodes: 10240
 total number of blocks: 10240
 Blocks per group: 8192
-Checking inode allocations
-number available inodes: 5105
-inodes per group: 5120
-INODE NUMBER FOUND: 1
-INODE NUMBER FOUND: 2
-INODE NUMBER FOUND: 3
-INODE NUMBER FOUND: 4
-INODE NUMBER FOUND: 5
-INODE NUMBER FOUND: 6
-INODE NUMBER FOUND: 7
-INODE NUMBER FOUND: 8
-INODE NUMBER FOUND: 10
-INODE NUMBER FOUND: 11
-INODE NUMBER FOUND: 12
-INODE NUMBER FOUND: 13
-INODE NUMBER FOUND: 14
-INODE NUMBER FOUND: 15
-INODE NUMBER FOUND: 16
-Number inodes found: 5120
 *** block size is 1024
 *** inode size is 128
 *** looking at /
 ***      is a directory
 ***      contains 7 entries
 ***      has 4 links
-5104
-inode number: 9
-5103
-inode number: 17
-5102
-inode number: 18
-5101
-inode number: 19
-5100
-inode number: 20
-5099
-inode number: 21
-5098
-inode number: 22
-5097
-inode number: 23
-5096
-inode number: 24
-5095
-inode number: 25
-5094
-inode number: 26
-5093
-inode number: 27
-5092
-inode number: 28
-5091
-inode number: 29
-5090
-inode number: 30
-5089
-inode number: 31
-5088
-inode number: 32
-5087
-inode number: 33
-5086
-inode number: 34
-5085
-inode number: 35
+new inode size: 1040
+new inode size: 1056
+new inode size: 1072
+new inode size: 1088
+new inode size: 1104
+new inode size: 1120
+new inode size: 1136
+new inode size: 1152
+new inode size: 1168
+new inode size: 1184
+new inode size: 1200
+new inode size: 1216
+new inode size: 1232
+new inode size: 1248
+new inode size: 1264
+new inode size: 1280
+new inode size: 1296
+new inode size: 1312
+new inode size: 1328
+new inode size: 1344
 shutdown

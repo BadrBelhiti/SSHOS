@@ -34,6 +34,8 @@ void show(const char* name, Shared<Node> node, bool show) {
             auto buffer = new char[sz+1];
             buffer[sz] = 0;
             auto cnt = node->read_all(0,sz,buffer);
+            Debug::printf("cnt: %d\n", cnt);
+            Debug::printf("len: %d\n", K::strlen(buffer));
             CHECK(sz == cnt);
             CHECK(K::strlen(buffer) == cnt);
             // can't just print the string because there is a 1000 character limit
@@ -71,5 +73,12 @@ void kernelMain(void) {
     show("hello", foundNode, false);
 
     Debug::printf("Number entries found: %d\n", root->entry_count());
+
+    char buffer[35];
+    ::memcpy(buffer, "Hello world! My name is Justin! :D", 34);
+    buffer[34] = 0;
+
+    foundNode->write_all(0, buffer, 34);
+    show("hello", foundNode, true);
 }
 

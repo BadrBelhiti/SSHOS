@@ -1,4 +1,4 @@
-1,11d0
+1,16d0
 < *** block size is 1024
 < *** inode size is 128
 < *** looking at /
@@ -10,3 +10,8 @@
 < ***      is a file
 < ***      contains 0 bytes
 < ***      has 1 links
+< *** looking at hello
+< ***      is a file
+< ***      contains 34 bytes
+< ***      has 1 links
+< *** passed 2 checks

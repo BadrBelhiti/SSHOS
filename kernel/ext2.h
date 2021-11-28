@@ -152,15 +152,15 @@ public:
 
     // read the given block (panics if the block number is not valid)
     // remember that block size is defined by the file system not the device
-    void read_block(uint32_t number, char* buffer) override {
-        if (number < 12) { // direct case
-            uint32_t blockAddress = inode->blockAddresses[number];
+    void read_block(uint32_t blockNumber, char* buffer) override {
+        if (blockNumber < 12) { // direct case
+            uint32_t blockAddress = inode->blockAddresses[blockNumber];
             fileSystem->ide->read_all(blockAddress * block_size, block_size, buffer);
         } else { // singly indirect case
             uint32_t blockAddress = inode->blockAddresses[12];
             fileSystem->ide->read_all(blockAddress * block_size, block_size, buffer);
-            number -= 12;
-            blockAddress = ((uint32_t *) buffer)[number];
+            blockNumber -= 12;
+            blockAddress = ((uint32_t *) buffer)[blockNumber];
             fileSystem->ide->read_all(blockAddress * block_size, block_size, buffer);
         }
     }
@@ -181,10 +181,10 @@ public:
 
             if (blockNumber < 12) {
                 // invalid blockAddress. We need to allocate a new block for this node
-                if (inode->blockAddresses[number] == 0) {
-                    inode->blockAddresses[number] = fileSystem->findAvailableBlock();
+                if (inode->blockAddresses[blockNumber] == 0) {
+                    inode->blockAddresses[blockNumber] = fileSystem->findAvailableBlock();
                 }
-                uint32_t blockAddress = inode->blockAddresses[number];
+                uint32_t blockAddress = inode->blockAddresses[blockNumber];
                 uint32_t writeAddress = blockAddress * block_size + blockOffset;
 
                 uint32_t writeCount = fileSystem->ide->write(writeAddress, bufferToWrite, remainingBytes);
@@ -199,7 +199,6 @@ public:
         // update file size
         uint32_t addedBytes = (fileOffset + bytesToWrite) - inode->sizeInBytes;
         inode->sizeInBytes += addedBytes;
-        Debug::printf("new inode size: %d\n", inode->sizeInBytes);
     }
 
     // returns the ext2 type of the node
