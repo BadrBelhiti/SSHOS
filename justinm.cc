@@ -16,6 +16,7 @@ void show(const char* name, Shared<Node> node, bool show) {
         Debug::printf("***      is a directory\n");
         Debug::printf("***      contains %d entries\n",node->entry_count());
         Debug::printf("***      has %d links\n",node->n_links());
+        Debug::printf("***      Directory Size: %d\n", node->size_in_bytes());
     } else if (node->is_symlink()) {
         Debug::printf("***      is a symbolic link\n");
         auto sz = node->size_in_bytes();
@@ -60,10 +61,13 @@ void kernelMain(void) {
     Debug::printf("*** block size is %d\n",fs->get_block_size());
     Debug::printf("*** inode size is %d\n",fs->get_inode_size());
    
-   // get "/"
-   auto root = fs->root;
-   show("/",root,true);
+    // get "/"
+    auto root = fs->root;
+    show("/",root,true);
 
-   fs->createNode(root, "hello");
+    fs->createNode(root, "hello", ENTRY_FILE_TYPE);
+
+    Shared<Node> foundNode = fs->find(root, "hello");
+    show("hello", foundNode, false);
 }
 

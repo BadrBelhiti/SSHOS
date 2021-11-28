@@ -64,6 +64,8 @@ void kernelMain(void) {
    auto root = fs->root;
    show("/",root,true);
 
-   fs->createNode(root, "hello");
+   for (uint32_t i = 0; i < 20; i++) {
+        fs->createNode(root, "hello", ENTRY_FILE_TYPE);
+    }
 }
 

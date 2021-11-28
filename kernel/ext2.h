@@ -7,6 +7,10 @@
 #include "debug.h"
 #include "libk.h"
 
+#define ENTRY_FILE_TYPE 1
+#define ENTRY_DIRECTORY_TYPE 2
+#define ENTRY_SOFT_LINK 7
+
 struct SuperBlock {
     uint32_t totalInodes;
     uint32_t totalBlocks;
@@ -35,7 +39,7 @@ struct Inode {
     uint8_t notNeeded2[18];
     uint16_t numHardLinks;
     uint8_t notNeeded3[12];
-    uint32_t blockNumbers[15];
+    uint32_t blockAddresses[15];
     uint8_t notNeeded4[28];
 };
 
@@ -47,9 +51,8 @@ private:
     // The device on which the file system resides
     Atomic<uint32_t> ref_count{0};
 
-    uint32_t findAvailableBlock();
-    
-    uint32_t findAvailableInode();
+    // allocate first available structure
+    int findAvailableStructure(uint32_t startingNumber, char **usageBitmaps, uint32_t structuresPerGroup);
 
 public:
     Shared<Node> root; // The root directory for this file system
@@ -79,7 +82,13 @@ public:
         return 128;
     }
 
-    bool createNode(Shared<Node> dir, const char* name);
+    // allocate first available block
+    int findAvailableBlock();
+    
+    // allocate first available inode
+    int findAvailableInode();
+
+    bool createNode(Shared<Node> dir, const char* name, uint8_t typeIndicator);
 
     // If the given node is a directory, return a reference to the
     // node linked to that name in the directory.
@@ -131,15 +140,53 @@ public:
     // remember that block size is defined by the file system not the device
     void read_block(uint32_t number, char* buffer) override {
         if (number < 12) { // direct case
-            uint32_t blockAddress = inode->blockNumbers[number];
+            uint32_t blockAddress = inode->blockAddresses[number];
             fileSystem->ide->read_all(blockAddress * block_size, block_size, buffer);
         } else { // singly indirect case
-            uint32_t blockAddress = inode->blockNumbers[12];
+            uint32_t blockAddress = inode->blockAddresses[12];
             fileSystem->ide->read_all(blockAddress * block_size, block_size, buffer);
             number -= 12;
             blockAddress = ((uint32_t *) buffer)[number];
             fileSystem->ide->read_all(blockAddress * block_size, block_size, buffer);
         }
+    }
+
+    // when writing directory entries, we need to first zero out the remainder of a block if 
+    // there isn't enough remaining space for the new entry
+    void write_all(uint32_t fileOffset, char *bufferToWrite, uint32_t bytesToWrite) {
+        if (fileOffset > size_in_bytes()) {
+            Debug::panic("PANIC: FileOffset requested to write is greater than file size\n");
+        }
+
+        // write to file
+        uint32_t bytesWritten = 0;
+        uint32_t curOffset = fileOffset;
+        while (bytesWritten < bytesToWrite) {
+            uint32_t blockNumber = curOffset / block_size;
+            uint32_t blockOffset = curOffset % block_size;
+
+            if (blockNumber < 12) {
+                // invalid blockAddress. We need to allocate a new block for this node
+                if (inode->blockAddresses[number] == 0) {
+                    inode->blockAddresses[number] = fileSystem->findAvailableBlock();
+                }
+                uint32_t blockAddress = inode->blockAddresses[number];
+                uint32_t writeAddress = blockAddress * block_size + blockOffset;
+
+                uint32_t writeCount = fileSystem->ide->write(writeAddress, bufferToWrite, bytesToWrite);
+                bytesWritten += writeCount;
+                bufferToWrite += writeCount;
+                Debug::printf("bytesWritten: %d\n", bytesWritten);
+            } else {
+                Debug::panic("PANIC: Haven't handled writing indirection yet\n");
+            }
+            curOffset += bytesWritten;
+        }
+
+        // update file size
+        uint32_t addedBytes = (fileOffset + bytesWritten) - inode->sizeInBytes;
+        inode->sizeInBytes += addedBytes;
+        Debug::printf("new inode size: %d\n", inode->sizeInBytes);
     }
 
     // returns the ext2 type of the node
@@ -175,7 +222,7 @@ public:
             read_all(0, inode->sizeInBytes, buffer);
         } else {
             for (uint32_t i = 0; i < inode->sizeInBytes; i++) {
-                buffer[i] = ((char *) inode->blockNumbers)[i];
+                buffer[i] = ((char *) inode->blockAddresses)[i];
             }
             buffer[inode->sizeInBytes] = 0;
         }

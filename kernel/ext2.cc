@@ -49,20 +49,22 @@ Ext2::Ext2(Shared<Ide> ide) {
     
     // read out number of allocated inodes for all block groups
 
-    // Debug::printf("Checking inode allocations\n");
+    // Debug::printf("Checking block allocations\n");
+    // // Debug::printf("number available inodes: %d\n", blockGroupTable[0].availableInodes);
+    // // Debug::printf("inodes per group: %d\n", superBlock->inodesPerGroup);
     // // iterate over over every inode allocation
     // for (uint32_t i = 0; i <= 0; i++) {
-    //     char *inodeUsageBitmap = inodeUsageBitmaps[i];
+    //     char *blockUsageBitmap = blockUsageBitmaps[i];
     //     // iterate over each byte in block
-    //     uint32_t inodeNumber = 1;
-    //     for (uint32_t j = 0; j < 1024; j++) {
+    //     uint32_t blockNumber = 0;
+    //     for (uint32_t j = 0; j < 640; j++) {
     //         // iterate over each bit
     //         for (int k = 7; k >= 0; k--) {
     //             // allocated inode
-    //             if ((inodeUsageBitmap[j] >> k) & 1) {
-    //                 Debug::printf("INODE NUMBER FOUND: %u\n", inodeNumber);
+    //             if (!(blockUsageBitmap[j] >> k) & 1) {
+    //                 Debug::printf("BLOCK NUMBER Not FOUND: %u\n", blockNumber);
     //             }
-    //             inodeNumber++;
+    //             blockNumber++;
     //         }
     //     }
     // }    
@@ -72,43 +74,108 @@ Ext2::Ext2(Shared<Ide> ide) {
 }
 
 // return blockNumber
-uint32_t Ext2::findAvailableBlock() {
-    return 0;
-}
-
-// return inodeNumber
-uint32_t Ext2::findAvailableInode() {
-    uint32_t inodeNumber = 1;
-    uint32_t bytesPerBitmap = superBlock->inodesPerGroup / 8;
-    Debug::printf("Bytes Per Bitmap: %u\n", bytesPerBitmap);
+int Ext2::findAvailableStructure(uint32_t startingNumber, char **usageBitmaps, uint32_t structuresPerGroup) {
+    uint32_t curNumber = startingNumber;
+    uint32_t bytesPerBitmap = structuresPerGroup / 8;
 
     for (uint32_t curBlockGroup = 0; curBlockGroup < numBlockGroups; curBlockGroup++) {
-        char *inodeUsageBitmap = inodeUsageBitmaps[curBlockGroup];
+        char *usageBitmap = usageBitmaps[curBlockGroup];
         for (uint32_t curByte = 0; curByte < bytesPerBitmap; curByte++) {
             // iterate over each bit
             for (int bitShift = 7; bitShift >= 0; bitShift--) {
-                uint32_t curBit = (inodeUsageBitmap[curByte] >> bitShift) & 1;
+                uint32_t curBit = (usageBitmap[curByte] >> bitShift) & 1;
                 // check if inode is allocated
                 if (!curBit) {
-                    Debug::printf("inode number found: %u\n", inodeNumber);
-                    Debug::printf("Before allocating bit: %x\n", inodeUsageBitmap[curByte]);
                     uint32_t bitMask = 1 << bitShift;
-                    inodeUsageBitmap[curByte] |= bitMask;
-                    Debug::printf("After allocating bit: %x\n", inodeUsageBitmap[curByte]);
-                    return inodeNumber;
+                    usageBitmap[curByte] |= bitMask;
+                    // blockGroupTable[curBlockGroup].availableInodes--;
+                    return curNumber;
                 }
-                inodeNumber++;
+                curNumber++;
             }
         }
     }
 
-    // we are out of inodes
+    // we ran out of structure
     return -1;
 }
 
-bool Ext2::createNode(Shared<Node> dir, const char* name) {
-    uint32_t inodeNumber = findAvailableInode();
-    
+int Ext2::findAvailableBlock() {
+    int blockNumber = findAvailableStructure(0, blockUsageBitmaps, superBlock->blocksPerGroup);
+    Debug::printf("Found block number! %d\n", blockNumber);
+    return blockNumber;
+}
+
+// return inodeNumber
+int Ext2::findAvailableInode() {
+    return findAvailableStructure(1, inodeUsageBitmaps, superBlock->inodesPerGroup);
+    // uint32_t inodeNumber = 1;
+    // uint32_t bytesPerBitmap = superBlock->inodesPerGroup / 8;
+
+    // for (uint32_t curBlockGroup = 0; curBlockGroup < numBlockGroups; curBlockGroup++) {
+    //     char *inodeUsageBitmap = inodeUsageBitmaps[curBlockGroup];
+    //     for (uint32_t curByte = 0; curByte < bytesPerBitmap; curByte++) {
+    //         // iterate over each bit
+    //         for (int bitShift = 7; bitShift >= 0; bitShift--) {
+    //             uint32_t curBit = (inodeUsageBitmap[curByte] >> bitShift) & 1;
+    //             // check if inode is allocated
+    //             if (!curBit) {
+    //                 uint32_t bitMask = 1 << bitShift;
+    //                 inodeUsageBitmap[curByte] |= bitMask;
+    //                 blockGroupTable[curBlockGroup].availableInodes--;
+    //                 return inodeNumber;
+    //             }
+    //             inodeNumber++;
+    //         }
+    //     }
+    // }
+
+    // // we are out of inodes
+    // return -1;
+}
+
+// make it so zerored out directory entries just have inode number of zero
+bool Ext2::createNode(Shared<Node> dir, const char* name, uint8_t typeIndicator) {
+    int inodeNumber = findAvailableInode();
+    // we ran out of inodes!
+    if (inodeNumber < -1) {
+        return false;
+    }
+
+    Debug::printf("Found inode number: %d\n", inodeNumber);
+
+    uint32_t nameLength = K::strlen(name);
+    uint32_t directorySize = 8 + nameLength;
+    // ensure directory entry is 4 byte aligned
+    if (directorySize % 4 != 0) {
+        directorySize += (4 - directorySize % 4);
+    }
+
+    char buffer[directorySize];
+    char *directoryEntry = buffer;
+
+    // add inodeNumber
+    *((uint32_t *) directoryEntry) = inodeNumber;
+    directoryEntry += 4;
+
+    // add in entry size
+    *((uint16_t *) directoryEntry) = directorySize;
+    directoryEntry += 2;
+
+    // add in name length
+    *((uint8_t *) directoryEntry) = nameLength;
+    directoryEntry += 1;
+
+    // add type indicator
+    *((uint8_t *) directoryEntry) = typeIndicator;
+    directoryEntry += 1;
+
+    // add in inode name
+    ::memcpy(directoryEntry, name, nameLength);
+
+    // write out directory entry to "dir"
+    dir->write_all(dir->size_in_bytes(), buffer, directorySize);
+
     return true;
 }
 
@@ -132,6 +199,7 @@ Shared<Node> Ext2::find(Shared<Node> dir, const char* name) {
         buffer += entrySize;
     }
 
+    Debug::printf("foundInodeNumber: %d\n", foundInodeNumber);
     Node *foundNode = fileFound ? new Node(get_block_size(), foundInodeNumber, this) : nullptr;
     return Shared<Node>{foundNode};
 }
