@@ -54,6 +54,8 @@ private:
     // allocate first available structure
     int findAvailableStructure(uint32_t startingNumber, char **usageBitmaps, uint32_t structuresPerGroup);
 
+    void createInode(uint16_t fileType, int inodeNumber);
+
 public:
     Shared<Node> root; // The root directory for this file system
     Shared<Ide> ide;
@@ -87,6 +89,18 @@ public:
     
     // allocate first available inode
     int findAvailableInode();
+
+    void write_all(uint32_t diskOffset, char *bufferToWrite, uint32_t bytesToWrite) {
+        // write to blocks
+        int remainingBytes = bytesToWrite;
+        uint32_t curOffset = diskOffset;
+        while (remainingBytes > 0) {
+            uint32_t writeCount = ide->write(curOffset, bufferToWrite, remainingBytes);
+            bufferToWrite += writeCount;
+            curOffset += writeCount;
+            remainingBytes -= writeCount;
+        }
+    }
 
     bool createNode(Shared<Node> dir, const char* name, uint8_t typeIndicator);
 
@@ -159,9 +173,9 @@ public:
         }
 
         // write to file
-        uint32_t bytesWritten = 0;
+        int remainingBytes = bytesToWrite;
         uint32_t curOffset = fileOffset;
-        while (bytesWritten < bytesToWrite) {
+        while (remainingBytes > 0) {
             uint32_t blockNumber = curOffset / block_size;
             uint32_t blockOffset = curOffset % block_size;
 
@@ -173,18 +187,17 @@ public:
                 uint32_t blockAddress = inode->blockAddresses[number];
                 uint32_t writeAddress = blockAddress * block_size + blockOffset;
 
-                uint32_t writeCount = fileSystem->ide->write(writeAddress, bufferToWrite, bytesToWrite);
-                bytesWritten += writeCount;
+                uint32_t writeCount = fileSystem->ide->write(writeAddress, bufferToWrite, remainingBytes);
+                curOffset += writeCount;
                 bufferToWrite += writeCount;
-                Debug::printf("bytesWritten: %d\n", bytesWritten);
+                remainingBytes -= writeCount;
             } else {
                 Debug::panic("PANIC: Haven't handled writing indirection yet\n");
             }
-            curOffset += bytesWritten;
         }
 
         // update file size
-        uint32_t addedBytes = (fileOffset + bytesWritten) - inode->sizeInBytes;
+        uint32_t addedBytes = (fileOffset + bytesToWrite) - inode->sizeInBytes;
         inode->sizeInBytes += addedBytes;
         Debug::printf("new inode size: %d\n", inode->sizeInBytes);
     }

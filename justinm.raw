@@ -5,8 +5,7 @@ iPXE (http://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+07F8F290+07EEF290 CA00
 Press Ctrl-B to configure iPXE (PCI 00:03.0)...                                                                               
 
 
-Booting from Hard Disk..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.
-xxxxxxxxxxxxxxxxxx
+Booting from Hard Disk...xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | What just happened? Why am I here?
 | Discovering my identity and features
 |     CPUID: AuthenticAMD
@@ -21,19 +20,19 @@ xxxxxxxxxxxxxxxxxx
 | switched to new UART
 | pitInit freq 1000Hz
 | pitInit divider 59659
-| APIT running at 1000045613Hz
-| APIT counter=1000045 for 1000Hz
+| APIT running at 1000059154Hz
+| APIT counter=1000059 for 1000Hz
 | initialize 1
 | reset 1
 |      eip:0x8000
 | initialize 2
+| 1 enabling interrupts, I'm scared
 | reset 2
 |      eip:0x8000
-| 1 enabling interrupts, I'm scared
 | initialize 3
-| 2 enabling interrupts, I'm scared
 | reset 3
 |      eip:0x8000
+| 2 enabling interrupts, I'm scared
 | 3 enabling interrupts, I'm scared
 | 0 enabling interrupts, I'm scared
 total number of inodes: 10240
@@ -46,12 +45,11 @@ Blocks per group: 8192
 ***      contains 3 entries
 ***      has 3 links
 ***      Directory Size: 1024
-Found inode number: 9
-Found block number! 656
-Block Size: 512
-bytesWritten: 16
 new inode size: 1040
 foundInodeNumber: 9
 *** looking at hello
-***    is of type 0
+***      is a file
+***      contains 0 bytes
+***      has 1 links
+Number entries found: 4
 shutdown

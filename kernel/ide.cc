@@ -124,7 +124,9 @@ void Ide::writeSector(uint32_t sector, const void* buffer) {
 }
 
 int32_t Ide::write(uint32_t offset, const void* buffer, uint32_t n) {
-    Debug::printf("Block Size: %u\n", block_size);
+    if (block_size != 512) {
+        Debug::panic("invalid sector size: %u\n", block_size);
+    }
     uint32_t sector = offset / block_size;
     uint32_t start = offset % block_size;
 

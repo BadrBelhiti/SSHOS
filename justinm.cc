@@ -69,5 +69,7 @@ void kernelMain(void) {
 
     Shared<Node> foundNode = fs->find(root, "hello");
     show("hello", foundNode, false);
+
+    Debug::printf("Number entries found: %d\n", root->entry_count());
 }
 

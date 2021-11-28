@@ -1,4 +1,4 @@
-1,9d0
+1,11d0
 < *** block size is 1024
 < *** inode size is 128
 < *** looking at /
@@ -7,4 +7,6 @@
 < ***      has 3 links
 < ***      Directory Size: 1024
 < *** looking at hello
-< ***    is of type 0
+< ***      is a file
+< ***      contains 0 bytes
+< ***      has 1 links
