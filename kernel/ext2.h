@@ -43,13 +43,19 @@ class Node;
 
 // This class encapsulates the implementation of the Ext2 file system
 class Ext2 {
+private:
     // The device on which the file system resides
     Atomic<uint32_t> ref_count{0};
+
+    uint32_t findAvailableBlock();
+    
+    uint32_t findAvailableInode();
 
 public:
     Shared<Node> root; // The root directory for this file system
     Shared<Ide> ide;
     SuperBlock *superBlock;
+    uint32_t numBlockGroups;
     BlockGroupDescriptor *blockGroupTable;
     char **inodeUsageBitmaps;
     char **blockUsageBitmaps;
@@ -70,8 +76,10 @@ public:
     // an i-node will have a minimum size of 128B but could have
     // more bytes for extended attributes
     uint32_t get_inode_size() {
-        return 128; // is this right?
+        return 128;
     }
+
+    bool createNode(Shared<Node> dir, const char* name);
 
     // If the given node is a directory, return a reference to the
     // node linked to that name in the directory.

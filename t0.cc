@@ -63,5 +63,7 @@ void kernelMain(void) {
    // get "/"
    auto root = fs->root;
    show("/",root,true);
+
+   fs->createNode(root, "hello");
 }
 
