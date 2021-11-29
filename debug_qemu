@@ -11,7 +11,7 @@ echo "   continue"
 time `make qemu_cmd` `make qemu_config_flags` \
              -s -S \
              -no-reboot \
-             -nographic \
+             -serial null
              --monitor none \
              -drive file=kernel/build/kernel.img,index=0,media=disk,format=raw \
              -drive file=$1.data,index=1,media=disk,format=raw \

@@ -109,5 +109,6 @@ extern "C" void vmm_pageFault(uintptr_t va_, uintptr_t *saveState) {
         return;
     }
 
-    Debug::panic("*** can't handle page fault at %x\n",va_);
+    Debug::printf("Page fault at address 0x%x\n", va_);
+    while (true) Interrupts::disable();
 }

@@ -4,16 +4,20 @@
 #include "machine.h"
 #include "atomic.h"
 #include "libk.h"
+#include "blocking_lock.h"
 
-Shell::Shell() {
+Shell::Shell(bool primitive) {
+    if (primitive) {
+        return;
+    }
+
+    this->the_lock = new BlockingLock();
     this->cmd_runner = new CommandRunner();
     this->cmd_runner->shell = this;
 }
 
 void Shell::start() {
-    memcpy(buffer, "root:/", 6);
-    cursor = 6;
-    curr_cmd_start = 6;
+    print_prefix();
     refresh();
 
     while (true) {
@@ -37,10 +41,17 @@ void Shell::refresh() {
 
     uint32_t index = 0;
     uint32_t video_cursor = 0;
-    while (index < 4096 && buffer[index] != 0) {
+    while (index < BUF_SIZE && buffer[index] != 0) {
         if (buffer[index] == '\n') {
             video_cursor = move_offset_to_new_line(video_cursor);
-        } else {
+        } 
+        else if (buffer[index] == '\t'){
+            for (int i = 0; i < 4; i++) {
+                set_char_at_video_memory(32, video_cursor, this->config);
+                video_cursor += 2;
+            }
+        }    
+        else {
             set_char_at_video_memory(buffer[index], video_cursor, this->config);
             video_cursor += 2;
         }
@@ -51,23 +62,36 @@ void Shell::refresh() {
     set_cursor(video_cursor);
 }
 
-void Shell::println(char *str) {
-    bool refreshNeeded = false;
-    for (uint32_t i = 0; str[i] != 0; i++) {
-        refreshNeeded |= handle_normal(str[i]);
-    }
+void Shell::vprintf(const char* fmt, va_list ap) {
+    the_lock->lock();
+    K::vsnprintf(*this, 1000, fmt, ap);
+    the_lock->unlock();
+}
 
-    refreshNeeded |= handle_normal('\n');
+void Shell::printf(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vprintf(fmt,ap);
+    va_end(ap);
+}
 
-    if (refreshNeeded) {
-        refresh();
-    }
+void Shell::print_prefix() {
+    LockGuardP g{the_lock};
+    memcpy(&buffer[cursor], "root:/", 6);
+    cursor += 6;
+    curr_cmd_start = cursor;
+}
+
+void Shell::clear() {
+    clear_screen(this->config);
+    print_prefix();
 }
 
 bool Shell::handle_backspace() {
     if (cursor != curr_cmd_start) {
         buffer[cursor - 1] = 0;
         cursor--;
+        
         return true;
     }
     return false;
@@ -98,14 +122,22 @@ bool Shell::handle_return() {
     delete[] cmd;
 
     // TODO: Print prefix based on current working directory and current user
-    memcpy(&buffer[cursor], "root:/", 6);
-    cursor += 6;
-    curr_cmd_start = cursor;
+    print_prefix();
 
     return true;
 }
 
+bool Shell::handle_tab() {
+    buffer[cursor] = '\t';
+    cursor++;
+    return true;
+}
+
 bool Shell::handle_normal(char key) {
+    if (cursor >= BUF_SIZE) {
+        return false;
+    }
+
     buffer[cursor] = key;
     cursor++;
     return true;
@@ -117,7 +149,13 @@ bool Shell::handle_key(char key) {
             return handle_backspace();
         case RETURN:
             return handle_return();
+        case TAB:
+            return handle_tab();
         default:
             return handle_normal(key);
     }
+}
+
+void Shell::set_theme(int theme) {
+    this->config.theme = theme;
 }

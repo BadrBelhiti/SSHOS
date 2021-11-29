@@ -3,11 +3,12 @@
 
 #include <stdarg.h>
 #include "io.h"
+#include "shell.h"
 
 class K {
 public:
-    static void snprintf (OutputStream<char>& sink, long maxlen, const char *fmt, ...);
-    static void vsnprintf (OutputStream<char>& sink, long maxlen, const char *fmt, va_list arg);
+    static void snprintf (Shell& shell, long maxlen, const char *fmt, ...);
+    static void vsnprintf (Shell& shell, long maxlen, const char *fmt, va_list arg);
     static long strlen(const char* str);
     static int isdigit(int c);
     static bool streq(const char* left, const char* right);

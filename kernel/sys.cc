@@ -308,6 +308,7 @@ int close(int id) {
 }
 
 int shutdown(void) {
+    while(true);
     Debug::shutdown();
     return 0;
 }
@@ -362,6 +363,8 @@ int execl(const char* path, const char** args) {
         cursor += (K::strlen(curr_arg) + 1);
     }
 
+    
+
     // Zero out all of private memory EXCEPT FOR LAST PAGE
     uint32_t *pd = current()->pd;
     for (uint32_t addr = 0x80000000; addr < 0xFFFFF000; addr += PhysMem::FRAME_SIZE) {
@@ -389,7 +392,9 @@ int execl(const char* path, const char** args) {
     user_stack[-1] = (uint32_t) stack_args;
     user_esp -= 8;
 
+
     // Jump to program
+    ASSERT(!Interrupts::isDisabled());
     switchToUser(eip, (uint32_t) user_esp, 0);
 
     return 0;
@@ -522,6 +527,22 @@ int readdir(int fd) {
     return 1;
 }
 
+int shell_theme(int theme) {
+    TCB *me = current();
+
+    if (theme != 0 && theme != 1) {
+        return -1;
+    }
+
+    if (theme == 0) {
+        me->shell->set_theme(WHITE_ON_BLACK);
+    } else {
+        me->shell->set_theme(WHITE_ON_BLUE);
+    }
+
+    return 0;
+}
+
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
     uint32_t *user_stack = (uint32_t*) frame[3];
 
@@ -568,9 +589,9 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
         // seek(int fd, off_t off)
         case 13:
             return seek(user_stack[1], user_stack[2]);
-
+        // println(char *str)
         case 14:
-
+            return shell_theme((int) user_stack[1]);
         // opendir(const char* fn)
         case 15:
             return opendir(user_stack[1]);
