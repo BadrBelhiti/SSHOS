@@ -40,7 +40,14 @@ void Shell::refresh() {
     while (index < 4096 && buffer[index] != 0) {
         if (buffer[index] == '\n') {
             video_cursor = move_offset_to_new_line(video_cursor);
-        } else {
+        } 
+        else if (buffer[index] == '\t'){
+            for (int i = 0; i < 4; i++) {
+                set_char_at_video_memory(32, video_cursor, this->config);
+                video_cursor += 2;
+            }
+        }    
+        else {
             set_char_at_video_memory(buffer[index], video_cursor, this->config);
             video_cursor += 2;
         }
@@ -68,6 +75,7 @@ bool Shell::handle_backspace() {
     if (cursor != curr_cmd_start) {
         buffer[cursor - 1] = 0;
         cursor--;
+        
         return true;
     }
     return false;
@@ -105,6 +113,12 @@ bool Shell::handle_return() {
     return true;
 }
 
+bool Shell::handle_tab() {
+    buffer[cursor] = '\t';
+    cursor++;
+    return true;
+}
+
 bool Shell::handle_normal(char key) {
     buffer[cursor] = key;
     cursor++;
@@ -117,6 +131,8 @@ bool Shell::handle_key(char key) {
             return handle_backspace();
         case RETURN:
             return handle_return();
+        case TAB:
+            return handle_tab();
         default:
             return handle_normal(key);
     }
