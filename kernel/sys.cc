@@ -478,6 +478,50 @@ int seek(int fd, uint32_t off) {
     return open_file->offset;
 }
 
+
+int opendir(const char* fn) {
+    Shared<OpenFile> *open_files = current()->open_files;
+    uint32_t available_id = 0;
+
+    // Look for available file descriptor
+    while (open_files[available_id] != nullptr && available_id < 10) {
+        available_id++;
+    }
+
+    // Maximum open file count has been reached
+    if (available_id == 10) {
+        return -1;
+    }
+
+    // Find directory, same as findinng file
+    Shared<Node> vnode = find_by_absolute(fn);
+
+    // Directory doesn't exist
+    if (vnode == nullptr) {
+        return -1;
+    }
+
+    ASSERT(vnode->is_dir()); // make sure this is actually a directory lol
+
+    // Create open file and add it to process's open files
+    open_files[available_id] = Shared<OpenFile>::make(available_id, true, false);
+
+
+    // Initialize file node 
+    open_files[available_id]->vnode = vnode;
+    return available_id;
+}
+
+int readdir(int fd) {
+    Shared<OpenFile> *open_files = current()->open_files;
+    Shared<Node> dir_node = open_files[fd]->vnode;
+    uint32_t num_entries = dir_node->entry_count();
+    
+    char** names = dir_node->get_entry_names(num_entries);
+
+    return 1;
+}
+
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
     uint32_t *user_stack = (uint32_t*) frame[3];
 
@@ -524,6 +568,15 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
         // seek(int fd, off_t off)
         case 13:
             return seek(user_stack[1], user_stack[2]);
+
+        case 14:
+
+        // opendir(const char* fn)
+        case 15:
+            return opendir(user_stack[1]);
+        // readdir(int fd)
+        case 16:
+            return readdir(user_stack[1]);
     }
 
     return 0;

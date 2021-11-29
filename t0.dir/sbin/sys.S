@@ -112,3 +112,18 @@ seek:
 	mov $13,%eax
 	int $48
 	ret
+
+	# int opendir(const char* fn)
+	.global opendir
+opendir:
+	mov $15,%eax
+	int $48
+	ret
+
+	# int readdir(int fd)
+	.global readdir
+readdir:
+	mov $16,%eax
+	int $48
+	ret
+

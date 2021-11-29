@@ -178,3 +178,15 @@ uint32_t Node::entry_count() {
     return count;
 }
 
+char** Node::get_entry_names(uint32_t num_entries) {
+    ASSERT(is_dir());
+    uint32_t index = 0;
+    char** names = new char*[num_entries];
+    entries([names, &index](uint32_t, char* entry_name) {
+        names[index] = new char[K::strlen(entry_name)];
+        K::strcpy(names[index], entry_name);
+        index += 1;
+    });
+    return names;
+}
+

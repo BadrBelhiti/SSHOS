@@ -204,6 +204,8 @@ public:
     // Panics if not a directory
     uint32_t entry_count();
 
+    char** get_entry_names(uint32_t num_entries);
+
     friend class Shared<Node>;
 };
 
