@@ -1,5 +1,6 @@
 #include "ext2.h"
 #include "libk.h"
+#include "threads.h"
 
 class OpenFile {
     public:
@@ -29,7 +30,7 @@ class OpenFile {
             }
 
             for (uint32_t i = 0; i < n; i++) {
-                Debug::printf("%c", ((char*) buffer)[i]);
+                gheith::current()->shell->printf("%c", ((char*) buffer)[i]);
             }
 
             return n;

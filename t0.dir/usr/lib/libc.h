@@ -23,5 +23,6 @@ extern int isdigit(int c);
 extern int printf(const char* fmt, ...);
 
 extern void cp(int from, int to);
+extern int streq(const char* a, const char* b);
 
 #endif

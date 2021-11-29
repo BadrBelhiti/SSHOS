@@ -3,13 +3,12 @@
 #include "shell.h"
 #include "sys.h"
 #include "threads.h"
+#include "vmm.h"
 
 using namespace gheith;
 
 
-CommandRunner::CommandRunner() {
-
-}
+CommandRunner::CommandRunner() {}
 
 bool CommandRunner::execute(char *cmd) {
     TCB *me = current();
@@ -29,12 +28,11 @@ bool CommandRunner::execute(char *cmd) {
     memcpy(full_program_name, "/usr/bin/", 9);
     memcpy(full_program_name + 9, program_name, program_name_size);
     full_program_name[9 + program_name_size] = 0;
-    shell->println(full_program_name);
 
     // Get program vnode
     Shared<Node> program_vnode = me->fs->find(me->fs->root, full_program_name);
     if (program_vnode == nullptr) {
-        shell->println("Program does not exist");
+        this->shell->printf("Program %s does not exist\n", full_program_name);
         return false;
     }
 
@@ -49,6 +47,7 @@ bool CommandRunner::execute(char *cmd) {
         curr_index++;
     }
 
+
     char **argv = new char*[argc + 1];
 
     // Reset for second loop
@@ -59,6 +58,7 @@ bool CommandRunner::execute(char *cmd) {
     first_arg[program_name_size] = 0;
     memcpy(first_arg, program_name, program_name_size);
     argv[curr_arg++] = first_arg;
+
 
     // Iterate through args
     while (true) {
@@ -73,14 +73,18 @@ bool CommandRunner::execute(char *cmd) {
         curr_index++;
     }
 
+
     // Args to execl are null terminated
     argv[argc] = 0;
 
     // User programs must run on different thread with same shell
-    thread([me, full_program_name, argv] {
-        current()->shell = me->shell;
+    shellProgram(current(), make_pd(), 10, [me, full_program_name, argv] {
         execl(full_program_name, (const char**) argv);
     });
+
+
+    uint32_t status = 1;
+    wait(10, &status);
 
     return true;
 }

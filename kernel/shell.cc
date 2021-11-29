@@ -55,18 +55,17 @@ void Shell::refresh() {
     set_cursor(video_cursor);
 }
 
-void Shell::println(const char *str) {
-    LockGuardP g{the_lock};
-    bool refreshNeeded = false;
-    for (uint32_t i = 0; str[i] != 0; i++) {
-        refreshNeeded |= handle_normal(str[i]);
-    }
+void Shell::vprintf(const char* fmt, va_list ap) {
+    the_lock->lock();
+    K::vsnprintf(*this, 1000, fmt, ap);
+    the_lock->unlock();
+}
 
-    refreshNeeded |= handle_normal('\n');
-
-    if (refreshNeeded) {
-        refresh();
-    }
+void Shell::printf(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vprintf(fmt,ap);
+    va_end(ap);
 }
 
 void Shell::print_prefix() {
@@ -139,4 +138,8 @@ bool Shell::handle_key(char key) {
         default:
             return handle_normal(key);
     }
+}
+
+void Shell::set_theme(int theme) {
+    this->config.theme = theme;
 }

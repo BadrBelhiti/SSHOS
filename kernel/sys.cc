@@ -308,6 +308,7 @@ int close(int id) {
 }
 
 int shutdown(void) {
+    while(true);
     Debug::shutdown();
     return 0;
 }
@@ -335,14 +336,11 @@ int wait(int id, uint32_t *ptr) {
 
 int execl(const char* path, const char** args) {
     // Find program in disk
-    current()->shell->println((char*) "In exec");
     Shared<Node> program_vnode = find_by_absolute(path);
 
     if (program_vnode == nullptr) {
         return -1;
     }
-
-    Debug::printf("Exec here\n");
 
     // Start moving program args to last page
     char *cursor = (char*) 0xFFFFF000;
@@ -360,13 +358,12 @@ int execl(const char* path, const char** args) {
     // Copy args. String literals go at bottom of the page.
     for (uint32_t i = 0; args[i] != 0; i++) {
         char *curr_arg = (char*) args[i];
-        Debug::printf("curr arg: %s\n", curr_arg);
         K::strcpy(cursor, curr_arg);
         stack_args[i] = (uint32_t) cursor;
         cursor += (K::strlen(curr_arg) + 1);
     }
 
-    Debug::printf("Here exec\n");
+    
 
     // Zero out all of private memory EXCEPT FOR LAST PAGE
     uint32_t *pd = current()->pd;
@@ -395,11 +392,9 @@ int execl(const char* path, const char** args) {
     user_stack[-1] = (uint32_t) stack_args;
     user_esp -= 8;
 
-    current()->shell->println((char*) "Here 1");
 
     // Jump to program
     ASSERT(!Interrupts::isDisabled());
-    me->shell->println("Switching to user mode");
     switchToUser(eip, (uint32_t) user_esp, 0);
 
     return 0;
@@ -488,22 +483,24 @@ int seek(int fd, uint32_t off) {
     return open_file->offset;
 }
 
-int println(char *str) {
+int shell_theme(int theme) {
     TCB *me = current();
-    me->shell->println("In syscall");
 
-    if (me->shell == nullptr) {
+    if (theme != 0 && theme != 1) {
         return -1;
     }
 
-    me->shell->println(str);
+    if (theme == 0) {
+        me->shell->set_theme(WHITE_ON_BLACK);
+    } else {
+        me->shell->set_theme(WHITE_ON_BLUE);
+    }
+
     return 0;
 }
 
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
     uint32_t *user_stack = (uint32_t*) frame[3];
-    current()->shell->println("In sysHandler");
-    while (true);
 
     switch (eax) {
         // exit(int status_code)
@@ -550,7 +547,7 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return seek(user_stack[1], user_stack[2]);
         // println(char *str)
         case 14:
-            return println((char*) user_stack[1]);
+            return shell_theme((int) user_stack[1]);
     }
 
     return 0;

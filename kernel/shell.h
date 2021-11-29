@@ -5,6 +5,7 @@
 #include "commands.h"
 
 #define WHITE_ON_BLACK 0x0F
+#define WHITE_ON_BLUE 0x1F
 #define BUF_SIZE 4096
 
 class BlockingLock;
@@ -25,6 +26,8 @@ class Shell {
         Shell(bool primitive);
         void start();
         void refresh();
+        void vprintf(const char* fmt, va_list ap);
+        void printf(const char* fmt, ...);
         void println(const char *str);
         void print_prefix();
         void clear();
@@ -32,6 +35,7 @@ class Shell {
         bool handle_return();
         bool handle_normal(char key);
         bool handle_key(char key);
+        void set_theme(int theme);
 
     friend class CommandRunner;
 };

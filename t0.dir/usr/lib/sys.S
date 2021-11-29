@@ -113,9 +113,9 @@ seek:
 	int $48
 	ret
 
-	# int println(char *str)
-	.global println
-println:
+	# int shell_theme(int theme)
+	.global shell_theme
+shell_theme:
 	mov $14,%eax
 	int $48
 	ret

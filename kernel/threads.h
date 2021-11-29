@@ -231,6 +231,24 @@ void childThread(gheith::TCB *parent, uint32_t* pd, uint32_t id, T work) {
     schedule(tcb);
 }
 
+template <typename T>
+void shellProgram(gheith::TCB *parent, uint32_t* pd, uint32_t id, T work) {
+    using namespace gheith;
 
+    delete_zombies();
+    ASSERT(parent->children != nullptr);
+
+    auto tcb = new TCBImpl<T>(work);
+    tcb->pd = pd;
+    tcb->saveArea.cr3 = (uint32_t) pd;
+    tcb->parent = parent;
+    parent->children[id - 10] = tcb;
+    tcb->pid = id;
+    tcb->fs = parent->fs;
+    tcb->shell = parent->shell;
+
+    ASSERT(tcb->exit != nullptr);
+    schedule(tcb);
+}
 
 #endif

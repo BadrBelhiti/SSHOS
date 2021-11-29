@@ -39,3 +39,15 @@ void cp(int from, int to) {
         }
     }
 }
+
+int streq(const char* a, const char* b) {
+    int i = 0;
+
+    while (1) {
+        char x = a[i];
+        char y = b[i];
+        if (x != y) return 0;
+        if (x == 0) return 1;
+        i++;
+    }
+}
