@@ -342,7 +342,7 @@ int execl(const char* path, const char** args) {
         return -1;
     }
 
-    
+    Debug::printf("Exec here\n");
 
     // Start moving program args to last page
     char *cursor = (char*) 0xFFFFF000;
@@ -360,10 +360,13 @@ int execl(const char* path, const char** args) {
     // Copy args. String literals go at bottom of the page.
     for (uint32_t i = 0; args[i] != 0; i++) {
         char *curr_arg = (char*) args[i];
+        Debug::printf("curr arg: %s\n", curr_arg);
         K::strcpy(cursor, curr_arg);
         stack_args[i] = (uint32_t) cursor;
         cursor += (K::strlen(curr_arg) + 1);
     }
+
+    Debug::printf("Here exec\n");
 
     // Zero out all of private memory EXCEPT FOR LAST PAGE
     uint32_t *pd = current()->pd;
@@ -395,6 +398,7 @@ int execl(const char* path, const char** args) {
     current()->shell->println((char*) "Here 1");
 
     // Jump to program
+    ASSERT(!Interrupts::isDisabled());
     me->shell->println("Switching to user mode");
     switchToUser(eip, (uint32_t) user_esp, 0);
 

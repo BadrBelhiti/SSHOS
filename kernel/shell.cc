@@ -4,16 +4,20 @@
 #include "machine.h"
 #include "atomic.h"
 #include "libk.h"
+#include "blocking_lock.h"
 
-Shell::Shell() {
+Shell::Shell(bool primitive) {
+    if (primitive) {
+        return;
+    }
+
+    this->the_lock = new BlockingLock();
     this->cmd_runner = new CommandRunner();
     this->cmd_runner->shell = this;
 }
 
 void Shell::start() {
-    memcpy(buffer, "root:/", 6);
-    cursor = 6;
-    curr_cmd_start = 6;
+    print_prefix();
     refresh();
 
     while (true) {
@@ -37,7 +41,7 @@ void Shell::refresh() {
 
     uint32_t index = 0;
     uint32_t video_cursor = 0;
-    while (index < 4096 && buffer[index] != 0) {
+    while (index < BUF_SIZE && buffer[index] != 0) {
         if (buffer[index] == '\n') {
             video_cursor = move_offset_to_new_line(video_cursor);
         } else {
@@ -52,6 +56,7 @@ void Shell::refresh() {
 }
 
 void Shell::println(const char *str) {
+    LockGuardP g{the_lock};
     bool refreshNeeded = false;
     for (uint32_t i = 0; str[i] != 0; i++) {
         refreshNeeded |= handle_normal(str[i]);
@@ -62,6 +67,18 @@ void Shell::println(const char *str) {
     if (refreshNeeded) {
         refresh();
     }
+}
+
+void Shell::print_prefix() {
+    LockGuardP g{the_lock};
+    memcpy(&buffer[cursor], "root:/", 6);
+    cursor += 6;
+    curr_cmd_start = cursor;
+}
+
+void Shell::clear() {
+    clear_screen(this->config);
+    print_prefix();
 }
 
 bool Shell::handle_backspace() {
@@ -98,14 +115,16 @@ bool Shell::handle_return() {
     delete[] cmd;
 
     // TODO: Print prefix based on current working directory and current user
-    memcpy(&buffer[cursor], "root:/", 6);
-    cursor += 6;
-    curr_cmd_start = cursor;
+    print_prefix();
 
     return true;
 }
 
 bool Shell::handle_normal(char key) {
+    if (cursor >= BUF_SIZE) {
+        return false;
+    }
+
     buffer[cursor] = key;
     cursor++;
     return true;

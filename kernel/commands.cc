@@ -12,7 +12,8 @@ CommandRunner::CommandRunner() {
 }
 
 bool CommandRunner::execute(char *cmd) {
-    // TCB *me = current();
+    TCB *me = current();
+
     // Get program name
     uint32_t program_name_size = 0;
     while (cmd[program_name_size] != 0 && cmd[program_name_size] != ' ') {
@@ -24,22 +25,18 @@ bool CommandRunner::execute(char *cmd) {
     memcpy(program_name, cmd, program_name_size);
     
     // Change format to /usr/bin/<program_name>
-    char full_program_name[9 + program_name_size + 1];
+    char *full_program_name = new char[9 + program_name_size + 1];
     memcpy(full_program_name, "/usr/bin/", 9);
     memcpy(full_program_name + 9, program_name, program_name_size);
     full_program_name[9 + program_name_size] = 0;
     shell->println(full_program_name);
 
     // Get program vnode
-    /*
     Shared<Node> program_vnode = me->fs->find(me->fs->root, full_program_name);
     if (program_vnode == nullptr) {
         shell->println("Program does not exist");
         return false;
     }
-
-    return true;
-    */
 
     // Get args
     uint32_t curr_index = program_name_size;
@@ -53,7 +50,6 @@ bool CommandRunner::execute(char *cmd) {
     }
 
     char **argv = new char*[argc + 1];
-    argv[argc] = 0;
 
     // Reset for second loop
     uint32_t arg_begin = program_name_size + 1;
@@ -77,7 +73,14 @@ bool CommandRunner::execute(char *cmd) {
         curr_index++;
     }
 
-    execl(full_program_name, (const char**) argv);
+    // Args to execl are null terminated
+    argv[argc] = 0;
 
-    return false;
+    // User programs must run on different thread with same shell
+    thread([me, full_program_name, argv] {
+        current()->shell = me->shell;
+        execl(full_program_name, (const char**) argv);
+    });
+
+    return true;
 }

@@ -68,15 +68,15 @@
 //int snprintf (char *str, long count, const char *fmt, ...);
 //int vsnprintf (char *str, long count, const char *fmt, va_list arg);
 
-static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, 
+static void dopr (Shell& shell, long maxlen, const char *format, 
                   va_list args);
-static void fmtstr (OutputStream<char>& buffer, long *currlen, long maxlen,
+static void fmtstr (Shell& shell, long *currlen, long maxlen,
 		    const char *value, int flags, int min, int max);
-static void fmtint (OutputStream<char>& buffer, long *currlen, long maxlen,
+static void fmtint (Shell& shell, long *currlen, long maxlen,
 		    long value, int base, int min, int max, int flags);
-static void fmtfp (OutputStream<char>& buffer, long *currlen, long maxlen,
+static void fmtfp (Shell& shell, long *currlen, long maxlen,
 		   LDOUBLE fvalue, int min, int max, int flags);
-static void dopr_outch (OutputStream<char>& buffer, long *currlen, long maxlen, char c );
+static void dopr_outch (Shell& shell, long *currlen, long maxlen, char c );
 
 /*
  * dopr(): poor man's version of doprintf
@@ -109,7 +109,7 @@ static void dopr_outch (OutputStream<char>& buffer, long *currlen, long maxlen, 
 #define char_to_int(p) (p - '0')
 #define MAX(p,q) ((p >= q) ? p : q)
 
-static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, va_list args)
+static void dopr (Shell& shell, long maxlen, const char *format, va_list args)
 {
   char ch;
   long value;
@@ -138,7 +138,7 @@ static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, v
       if (ch == '%') 
 	state = DP_S_FLAGS;
       else 
-	dopr_outch (buffer, &currlen, maxlen, ch);
+	dopr_outch (shell, &currlen, maxlen, ch);
       ch = *format++;
       break;
     case DP_S_FLAGS:
@@ -242,7 +242,7 @@ static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, v
 	  value = va_arg (args, long int);
 	else
 	  value = va_arg (args, int);
-	fmtint (buffer, &currlen, maxlen, value, 10, min, max, flags);
+	fmtint (shell, &currlen, maxlen, value, 10, min, max, flags);
 	break;
       case 'o':
 	flags |= DP_F_UNSIGNED;
@@ -252,7 +252,7 @@ static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, v
 	  value = va_arg (args, unsigned long int);
 	else
 	  value = va_arg (args, unsigned int);
-	fmtint (buffer, &currlen, maxlen, value, 8, min, max, flags);
+	fmtint (shell, &currlen, maxlen, value, 8, min, max, flags);
 	break;
       case 'u':
 	flags |= DP_F_UNSIGNED;
@@ -262,7 +262,7 @@ static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, v
 	  value = va_arg (args, unsigned long int);
 	else
 	  value = va_arg (args, unsigned int);
-	fmtint (buffer, &currlen, maxlen, value, 10, min, max, flags);
+	fmtint (shell, &currlen, maxlen, value, 10, min, max, flags);
 	break;
       case 'X':
 	flags |= DP_F_UP;
@@ -274,7 +274,7 @@ static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, v
 	  value = va_arg (args, unsigned long int);
 	else
 	  value = va_arg (args, unsigned int);
-	fmtint (buffer, &currlen, maxlen, value, 16, min, max, flags);
+	fmtint (shell, &currlen, maxlen, value, 16, min, max, flags);
 	break;
       case 'f':
 	if (cflags == DP_C_LDOUBLE)
@@ -282,7 +282,7 @@ static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, v
 	else
 	  fvalue = va_arg (args, double);
 	/* um, floating point? */
-	fmtfp (buffer, &currlen, maxlen, fvalue, min, max, flags);
+	fmtfp (shell, &currlen, maxlen, fvalue, min, max, flags);
 	break;
       case 'E':
 	flags |= DP_F_UP;
@@ -301,17 +301,17 @@ static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, v
 	  fvalue = va_arg (args, double);
 	break;
       case 'c':
-	dopr_outch (buffer, &currlen, maxlen, va_arg (args, int));
+	dopr_outch (shell, &currlen, maxlen, va_arg (args, int));
 	break;
       case 's':
 	strvalue = va_arg (args, char *);
 	if (max < 0) 
 	  max = maxlen; /* ie, no max */
-	fmtstr (buffer, &currlen, maxlen, strvalue, flags, min, max);
+	fmtstr (shell, &currlen, maxlen, strvalue, flags, min, max);
 	break;
       case 'p':
 	strvalue = (char*) va_arg (args, void *);
-	fmtint (buffer, &currlen, maxlen, (long) strvalue, 16, min, max, flags);
+	fmtint (shell, &currlen, maxlen, (long) strvalue, 16, min, max, flags);
 	break;
       case 'n':
 	if (cflags == DP_C_SHORT) 
@@ -334,7 +334,7 @@ static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, v
         }
 	break;
       case '%':
-	dopr_outch (buffer, &currlen, maxlen, ch);
+	dopr_outch (shell, &currlen, maxlen, ch);
 	break;
       case 'w':
 	/* not supported yet, treat as next char */
@@ -358,7 +358,7 @@ static void dopr (OutputStream<char>& buffer, long maxlen, const char *format, v
   }
 }
 
-static void fmtstr (OutputStream<char>& buffer, long *currlen, long maxlen,
+static void fmtstr (Shell& shell, long *currlen, long maxlen,
 		    const char *value, int flags, int min, int max)
 {
   int padlen, strln;     /* amount to pad */
@@ -378,18 +378,18 @@ static void fmtstr (OutputStream<char>& buffer, long *currlen, long maxlen,
 
   while ((padlen > 0) && (cnt < max)) 
   {
-    dopr_outch (buffer, currlen, maxlen, ' ');
+    dopr_outch (shell, currlen, maxlen, ' ');
     --padlen;
     ++cnt;
   }
   while (*value && (cnt < max)) 
   {
-    dopr_outch (buffer, currlen, maxlen, *value++);
+    dopr_outch (shell, currlen, maxlen, *value++);
     ++cnt;
   }
   while ((padlen < 0) && (cnt < max)) 
   {
-    dopr_outch (buffer, currlen, maxlen, ' ');
+    dopr_outch (shell, currlen, maxlen, ' ');
     ++padlen;
     ++cnt;
   }
@@ -397,7 +397,7 @@ static void fmtstr (OutputStream<char>& buffer, long *currlen, long maxlen,
 
 /* Have to handle DP_F_NUM (ie 0x and 0 alternates) */
 
-static void fmtint (OutputStream<char>& buffer, long *currlen, long maxlen,
+static void fmtint (Shell& shell, long *currlen, long maxlen,
 		    long value, int base, int min, int max, int flags)
 {
   int signvalue = 0;
@@ -458,31 +458,31 @@ static void fmtint (OutputStream<char>& buffer, long *currlen, long maxlen,
   /* Spaces */
   while (spadlen > 0) 
   {
-    dopr_outch (buffer, currlen, maxlen, ' ');
+    dopr_outch (shell, currlen, maxlen, ' ');
     --spadlen;
   }
 
   /* Sign */
   if (signvalue) 
-    dopr_outch (buffer, currlen, maxlen, signvalue);
+    dopr_outch (shell, currlen, maxlen, signvalue);
 
   /* Zeros */
   if (zpadlen > 0) 
   {
     while (zpadlen > 0)
     {
-      dopr_outch (buffer, currlen, maxlen, '0');
+      dopr_outch (shell, currlen, maxlen, '0');
       --zpadlen;
     }
   }
 
   /* Digits */
   while (place > 0) 
-    dopr_outch (buffer, currlen, maxlen, convert[--place]);
+    dopr_outch (shell, currlen, maxlen, convert[--place]);
   
   /* Left Justified spaces */
   while (spadlen < 0) {
-    dopr_outch (buffer, currlen, maxlen, ' ');
+    dopr_outch (shell, currlen, maxlen, ' ');
     ++spadlen;
   }
 }
@@ -522,7 +522,7 @@ static long xround (LDOUBLE value)
   return intpart;
 }
 
-static void fmtfp (OutputStream<char>& buffer, long *currlen, long maxlen,
+static void fmtfp (Shell& shell, long *currlen, long maxlen,
 		   LDOUBLE fvalue, int min, int max, int flags)
 {
   int signvalue = 0;
@@ -615,26 +615,26 @@ static void fmtfp (OutputStream<char>& buffer, long *currlen, long maxlen,
   {
     if (signvalue) 
     {
-      dopr_outch (buffer, currlen, maxlen, signvalue);
+      dopr_outch (shell, currlen, maxlen, signvalue);
       --padlen;
       signvalue = 0;
     }
     while (padlen > 0)
     {
-      dopr_outch (buffer, currlen, maxlen, '0');
+      dopr_outch (shell, currlen, maxlen, '0');
       --padlen;
     }
   }
   while (padlen > 0)
   {
-    dopr_outch (buffer, currlen, maxlen, ' ');
+    dopr_outch (shell, currlen, maxlen, ' ');
     --padlen;
   }
   if (signvalue) 
-    dopr_outch (buffer, currlen, maxlen, signvalue);
+    dopr_outch (shell, currlen, maxlen, signvalue);
 
   while (iplace > 0) 
-    dopr_outch (buffer, currlen, maxlen, iconvert[--iplace]);
+    dopr_outch (shell, currlen, maxlen, iconvert[--iplace]);
 
   /*
    * Decimal point.  This should probably use locale to find the correct
@@ -642,37 +642,38 @@ static void fmtfp (OutputStream<char>& buffer, long *currlen, long maxlen,
    */
   if (max > 0)
   {
-    dopr_outch (buffer, currlen, maxlen, '.');
+    dopr_outch (shell, currlen, maxlen, '.');
 
     while (fplace > 0) 
-      dopr_outch (buffer, currlen, maxlen, fconvert[--fplace]);
+      dopr_outch (shell, currlen, maxlen, fconvert[--fplace]);
   }
 
   while (zpadlen > 0)
   {
-    dopr_outch (buffer, currlen, maxlen, '0');
+    dopr_outch (shell, currlen, maxlen, '0');
     --zpadlen;
   }
 
   while (padlen < 0) 
   {
-    dopr_outch (buffer, currlen, maxlen, ' ');
+    dopr_outch (shell, currlen, maxlen, ' ');
     ++padlen;
   }
 }
 
-static void dopr_outch (OutputStream<char>& buffer, long *currlen, long maxlen, char c)
+static void dopr_outch (Shell& shell, long *currlen, long maxlen, char c)
 {
   (*currlen) += 1;
-  buffer.put(c);
+  bool refreshNeeded = shell.handle_normal(c);
+  if (refreshNeeded) shell.refresh();
 }
 
-void K::vsnprintf (OutputStream<char>& buffer, long maxlen, const char *fmt, va_list args)
+void K::vsnprintf (Shell& shell, long maxlen, const char *fmt, va_list args)
 {
-  dopr(buffer, maxlen, fmt, args);
+  dopr(shell, maxlen, fmt, args);
 }
 
-void K::snprintf (OutputStream<char>& buffer, long maxlen, const char *fmt,...)
+void K::snprintf (Shell& shell, long maxlen, const char *fmt,...)
 {
   VA_LOCAL_DECL;
     
@@ -680,6 +681,6 @@ void K::snprintf (OutputStream<char>& buffer, long maxlen, const char *fmt,...)
   VA_SHIFT (str, char *);
   VA_SHIFT (count, long );
   VA_SHIFT (fmt, char *);
-  vsnprintf(buffer, maxlen, fmt, ap);
+  vsnprintf(shell, maxlen, fmt, ap);
   VA_END;
 }

@@ -7,7 +7,10 @@ using namespace gheith;
 
 void kernelMain(void) {
     // Create shell
-    Shell shell{};
+    Shell shell{false};
+
+    // Declare current shell as debugging shell
+    Debug::init(&shell);
 
     // Mount file system
     Shared<Ide> ide = Shared<Ide>::make(1);
