@@ -6,6 +6,8 @@
 #define RETURN 0x0A
 #define SPACE 0x20
 #define BACKSPACE 0x08
+#define TAB 0x09
+#define ESCAPE 0x1B 
 
 /*
  * Reads keyboard input using Scan Code Set 1

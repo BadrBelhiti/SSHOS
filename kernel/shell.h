@@ -24,6 +24,7 @@ class Shell {
         void println(char *str);
         bool handle_backspace();
         bool handle_return();
+        bool handle_tab();
         bool handle_normal(char key);
         bool handle_key(char key);
 
