@@ -3,7 +3,9 @@
 #include "machine.h"
 
 static char scancodes[256];
-bool shiftPressed;
+bool shiftPressed = false;
+bool capsReleased = true;
+bool capsLock = false;
 
 // checks if a key is currently being pressed
 bool key_pressed() {
@@ -12,13 +14,13 @@ bool key_pressed() {
 
 // returns version of inputted character when Shift is held down
 char getShift(uint32_t notShift) {
+    char scancode = scancodes[notShift];
     // Different key pressed from shift, while shift is still held down
-    if (scancodes[notShift] >= 'a' && scancodes[notShift] <= 'z') {
-        char scancode = scancodes[notShift];
-        if (scancode != RETURN && scancode != SPACE && scancode != BACKSPACE) {
-            scancode = (char)((int)scancode - 32);
-        }
-
+    if (scancode == RETURN || scancode == SPACE || scancode == BACKSPACE || scancode == TAB) {
+        return scancode;
+    }
+    else if (scancode >= 'a' && scancode <= 'z') {
+        scancode = (char)((int)scancode - 32);
         return scancode;
     }
     else {
@@ -79,6 +81,8 @@ char get_key() {
     while (!key_pressed());
 
     uint32_t pressedKey = inb(DATA_PORT);
+
+    // handle shifts
     if (pressedKey == 0x2A || pressedKey == 0x36) {
         shiftPressed = true;     
 
@@ -86,8 +90,23 @@ char get_key() {
     else if (pressedKey == 0xAA || pressedKey == 0xB6) {
         shiftPressed = false;
     }
-    
-    if (shiftPressed) {
+    // handle caps lock
+    else if (pressedKey == 0x3A) {
+        if (capsReleased) {
+            if (capsLock) {
+                capsLock = false;
+            }
+            else {
+                capsLock = true;
+            }
+            capsReleased = false;
+        }
+    } 
+    else if (pressedKey == 0xBA) {
+        capsReleased = true;
+    }
+
+    if (shiftPressed ^ capsLock) {
         return getShift(pressedKey);
     }
     return scancodes[pressedKey];
@@ -148,8 +167,8 @@ void Keyboard::init() {
 
     /* USEFUL KEYS */
     scancodes[0x9C] = RETURN;
-    scancodes[0xB9] = SPACE;
-    scancodes[0x8E] = BACKSPACE;
-    scancodes[0x8F] = TAB;
-    scancodes[0x81] = ESCAPE;
+    scancodes[0x39] = SPACE;
+    scancodes[0x0E] = BACKSPACE;
+    scancodes[0x0F] = TAB;
+    // scancodes[0x81] = ESCAPE;
 }
