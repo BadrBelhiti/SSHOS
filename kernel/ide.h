@@ -34,10 +34,6 @@ public:
     // buffer is big enough
     void read_block(uint32_t block_number, char* buffer) override;
 
-    void writeSector(uint32_t sector, const void* buffer);
-
-    int32_t write(uint32_t offset, const void* buffer, uint32_t n);
-
     // We lie because I'm too lazy to get the actual drive size
     // This means that we'll get QEMU errors if we try to access
     // non existent blocks.

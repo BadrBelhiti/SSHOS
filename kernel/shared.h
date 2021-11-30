@@ -3,105 +3,110 @@
 
 template <typename T>
 class Shared {
+    public:
+    T* ptr;
 
-private:
-    T* the_ptr;
-
-    void construct(T *the_ptr) {
-        this->the_ptr = the_ptr; // remember the pointer
-        if (this->the_ptr != nullptr) {
-            this->the_ptr->ref_count.add_fetch(1);
-        }
-    }
-
-    void destruct() {
-        if (this->the_ptr != nullptr) {
-            if (this->the_ptr->ref_count.add_fetch(-1) == 0) {
-                delete this->the_ptr;
+    void drop() {
+        if (ptr != nullptr) {
+            auto new_count = ptr->ref_count.add_fetch(-1);
+            if (new_count == 0) {
+                delete ptr;
+                ptr = nullptr;
             }
         }
     }
 
+    void add() {
+        if (ptr != nullptr) {
+            ptr->ref_count.add_fetch(1);
+        }
+    }
+
 public:
-    // Shared<Thing> x{new Thing()};
-    explicit Shared(T* it) {
-        construct(it);
+
+    explicit Shared(T* it) : ptr(it) {
+        add();
     }
 
+    //
     // Shared<Thing> a{};
-    Shared() {
-        this->the_ptr = nullptr;
+    //
+    Shared(): ptr(nullptr) {
+
     }
 
-    // we are creating a brand new shared object
-    // points to an object on the heap that we have already created a smart pointer for
-    // we need to make sure to add one to its reference count
     //
     // Shared<Thing> b { a };
     // Shared<Thing> c = b;
     // f(b);
     // return c;
     //
-    Shared(const Shared& rhs) {
-        construct(rhs.the_ptr);
+    Shared(const Shared& rhs): ptr(rhs.ptr) {
+        add();
+    }
+
+    //
+    // Shared<Thing> d = g();
+    //
+    Shared(Shared&& rhs): ptr(rhs.ptr) {
+        rhs.ptr = nullptr;
     }
 
     ~Shared() {
-        destruct();
+        drop();
     }
 
     // d->m();
-    // dereferencing
     T* operator -> () const {
-        return this->the_ptr;
+        return ptr;
     }
 
+    // d = nullptr;
     // d = new Thing{};
     Shared<T>& operator=(T* rhs) {
-        if (rhs != nullptr) {
-            rhs->ref_count.add_fetch(1);
+        if (this->ptr != rhs) {
+            drop();
+            this->ptr = rhs;
+            add();
         }
-
-        destruct();
-
-        this->the_ptr = rhs;
-
         return *this;
     }
 
+    // d = a;
     // d = Thing{};
     Shared<T>& operator=(const Shared<T>& rhs) {
-        if (rhs.the_ptr != nullptr) {
-            rhs.the_ptr->ref_count.add_fetch(1);
+        auto other_ptr = rhs.ptr;
+        if (ptr != other_ptr) {
+            drop();
+            ptr = other_ptr;
+            add();
         }
-
-        destruct();
-
-        this->the_ptr = rhs.the_ptr;
-
         return *this;
     }
 
-    // a == b
+    // d = g();
+    Shared<T>& operator=(Shared<T>&& rhs) {
+        drop();
+        ptr = rhs.ptr;
+        rhs.ptr = nullptr;
+        
+        return *this;
+    }
+
     bool operator==(const Shared<T>& rhs) const {
-        return this->the_ptr == rhs.the_ptr;
+	    return ptr == rhs.ptr;
     }
 
-    // a != b
     bool operator!=(const Shared<T>& rhs) const {
-        return this->the_ptr != rhs.the_ptr;
+	    return ptr != rhs.ptr;
     }
 
-    // a == nullptr
-    // a == new T{}
     bool operator==(T* rhs) {
-        return this->the_ptr == rhs;
+        return ptr == rhs;
     }
 
-    // a != nullptr
-    // a != new T{}
     bool operator!=(T* rhs) {
-        return this->the_ptr != rhs;
+        return ptr != rhs;
     }
 
     // e = Shared<Thing>::make(1,2,3);
