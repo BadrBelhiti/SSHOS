@@ -121,13 +121,19 @@ bool Shell::handle_return() {
         if (!successful) {
             // println((char*) "Command failed");
         }
+        
+        commands[command_count] = cmd;
+        commandSizes[command_count] = cmd_size;
+        command_count++;
     }
-
-    delete[] cmd;
+    else {
+        delete[] cmd;
+    }
 
     // TODO: Print prefix based on current working directory and current user
     print_prefix();
     leftShifts = 0;
+    currCommand = command_count;
     return true;
 }
 
@@ -161,6 +167,52 @@ bool Shell::handle_rarrow() {
 
     cursor++;
     leftShifts--;
+    return true;
+}
+
+bool Shell::handle_uarrow() {
+    // up arrow
+    if (currCommand == 0) {
+        return false;
+    }
+    else if (currCommand == command_count) {
+        // temporarily store the current command being typed
+        uint32_t cmd_size = cursor - curr_cmd_start;
+        char *cmd = new char[cmd_size + 1];
+        cmd[cmd_size] = 0;
+
+        memcpy(cmd, &buffer[curr_cmd_start], cmd_size);
+        commands[currCommand] = cmd;
+        commandSizes[currCommand] = cmd_size;
+    }
+
+    // retrieve past command, copy over the command and zero out extra characters in buffer
+    currCommand--;
+    memcpy(&buffer[curr_cmd_start], commands[currCommand], commandSizes[currCommand]);
+    for (uint32_t i = curr_cmd_start + commandSizes[currCommand]; i <= cursor; i++) {
+        buffer[i] = 0;
+    }
+
+    leftShifts = 0;
+    cursor = curr_cmd_start + commandSizes[currCommand];
+    return true;
+}
+
+bool Shell::handle_darrow() {
+    // down arrow
+    if (currCommand == command_count) {
+        return false;
+    }
+
+    // retrieve next command, copy it over and zero out extra characters in buffer
+    currCommand++;
+    memcpy(&buffer[curr_cmd_start], commands[currCommand], commandSizes[currCommand]);
+    for (uint32_t i = curr_cmd_start + commandSizes[currCommand]; i <= cursor; i++) {
+        buffer[i] = 0;
+    }
+
+    leftShifts = 0;
+    cursor = curr_cmd_start + commandSizes[currCommand];
     return true;
 }
 
@@ -201,6 +253,10 @@ bool Shell::handle_key(char key) {
             return handle_larrow();
         case RARROW:
             return handle_rarrow();
+        case UARROW:
+            return handle_uarrow();
+        case DARROW:
+            return handle_darrow();
         default:
             return handle_normal(key);
     }
