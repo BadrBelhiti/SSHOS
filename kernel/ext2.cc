@@ -101,12 +101,34 @@ int Ext2::findAvailableStructure(uint32_t startingNumber, char **usageBitmaps, u
 }
 
 int Ext2::findAvailableBlock() {
-    return findAvailableStructure(0, blockUsageBitmaps, superBlock->blocksPerGroup);
+    uint32_t allocatedBlock = findAvailableStructure(0, blockUsageBitmaps, superBlock->blocksPerGroup);
+    return allocatedBlock;
 }
 
 // return inodeNumber
 int Ext2::findAvailableInode() {
-    return findAvailableStructure(1, inodeUsageBitmaps, superBlock->inodesPerGroup);
+    uint32_t allocatedInode = findAvailableStructure(1, inodeUsageBitmaps, superBlock->inodesPerGroup);
+    return allocatedInode;
+}
+
+void Ext2::freeStructure(uint32_t number, char **usageBitmaps, uint32_t structuresPerGroup) {
+    uint32_t groupNumber = number / structuresPerGroup;
+    uint32_t groupBitNumber = number % structuresPerGroup;
+    uint32_t byteIndex = groupBitNumber / 8;
+    uint32_t bitIndex = groupBitNumber % 8;
+
+    // free the desired bit by masking it out while preserving the rest of the byte
+    char *usageBitmap = usageBitmaps[groupNumber];
+    uint32_t bitMask = ~(1 << (7 - bitIndex));
+    usageBitmap[byteIndex] &= bitMask;
+}
+
+void Ext2::freeBlock(uint32_t blockNumber) {
+    return freeStructure(blockNumber, blockUsageBitmaps, superBlock->blocksPerGroup);
+} 
+
+void Ext2::freeInode(uint32_t inodeNumber) {
+    return freeStructure(inodeNumber - 1, inodeUsageBitmaps, superBlock->inodesPerGroup);
 }
 
 void Ext2::createInode(uint16_t fileType, int inodeNumber) {
@@ -150,6 +172,30 @@ void createDirectoryEntry(const char* name, int inodeNumber, uint8_t typeIndicat
     if (directorySize % 4 != 0) {
         directorySize += (4 - directorySize % 4);
     }
+
+    // // ensure that directory entries don't cross between 2 blocks
+    // uint32_t remainingBlockSpace = dir->block_size - (dir->size_in_bytes() % dir->block_size);
+    // if (remainingBlockSpace - directorySize <= 8) { // check if it's possible for a new directory entry to be created in this block
+    //     // use up rest of block
+    //     directorySize += remainingBlockSpace;
+    // } else if (remainingBlockSpace < directorySize) { // check if there is enough room in block to create new directory entry
+    //     Debug::printf("adding in zero entry!\n");
+    //     Debug::printf("remainingBlockSpace: %d\n", remainingBlockSpace);
+    //     Debug::printf("directorySize: %d\n", directorySize);
+    //     char zeroBuffer[remainingBlockSpace];
+    //     for (uint32_t i = 0; i < remainingBlockSpace; i++) {
+    //         zeroBuffer[i] = 0;
+    //     }
+    //     // fill in size of zero directory entry
+    //     *((uint16_t *) (zeroBuffer + 4)) = remainingBlockSpace;
+
+    //     for (uint32_t i = 0; i < remainingBlockSpace; i++) {
+    //         Debug::printf("%u\n", zeroBuffer[i]);
+    //     }
+
+    //     // write out zero directory entry
+    //     dir->write_all(dir->size_in_bytes(), zeroBuffer, remainingBlockSpace);
+    // }
 
     char buffer[directorySize];
     char *directoryEntry = buffer;

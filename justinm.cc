@@ -34,13 +34,11 @@ void show(const char* name, Shared<Node> node, bool show) {
             auto buffer = new char[sz+1];
             buffer[sz] = 0;
             auto cnt = node->read_all(0,sz,buffer);
-            Debug::printf("cnt: %d\n", cnt);
-            Debug::printf("len: %d\n", K::strlen(buffer));
             CHECK(sz == cnt);
             CHECK(K::strlen(buffer) == cnt);
             // can't just print the string because there is a 1000 character limit
             // on the output string length.
-            for (uint32_t i=0; i<cnt; i++) {
+            for (uint32_t i = 0; i < cnt; i++) {
                 Debug::printf("%c",buffer[i]);
             }
             delete[] buffer;
@@ -67,18 +65,31 @@ void kernelMain(void) {
     auto root = fs->root;
     show("/",root,true);
 
-    fs->createNode(root, "hello", ENTRY_FILE_TYPE);
-
-    Shared<Node> foundNode = fs->find(root, "hello");
-    show("hello", foundNode, false);
-
     Debug::printf("Number entries found: %d\n", root->entry_count());
 
-    char buffer[35];
-    ::memcpy(buffer, "Hello world! My name is Justin! :D", 34);
-    buffer[34] = 0;
+    char buffer[12];
+    ::memcpy(buffer, "justin text", 11);
+    buffer[11] = 0;
 
-    foundNode->write_all(0, buffer, 34);
-    show("hello", foundNode, true);
+    fs->createNode(root, "justin", ENTRY_FILE_TYPE);
+    Shared<Node> foundNode = fs->find(root, "justin");
+    foundNode->write_all(0, buffer, 11);
+    show("justin", foundNode, true);
+
+    Debug::printf("Number entries before deleting: %d\n", root->entry_count());
+
+    foundNode->deleteNode(root);
+    
+    Debug::printf("Number entries after deleting: %d\n", root->entry_count());
+
+    fs->createNode(root, "new_file", ENTRY_FILE_TYPE);
+    foundNode = fs->find(root, "new_file");
+    char newBuffer[41];
+    ::memcpy(newBuffer, "this is new text that we are writing!!!", 39);
+    newBuffer[39] = 0;
+    
+    Debug::printf("\n\nWriting to new file\n");
+    foundNode->write_all(0, newBuffer, 39);
+    show("new_file", foundNode, true);
+    Debug::printf("Number entries after creating new file: %d\n", root->entry_count());
 }
-

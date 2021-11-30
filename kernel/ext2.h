@@ -53,6 +53,11 @@ private:
 
     // allocate first available structure
     int findAvailableStructure(uint32_t startingNumber, char **usageBitmaps, uint32_t structuresPerGroup);
+    
+    // delete directory entry from dir
+    void deleteDirectoryEntry(Shared<Node> dir, uint32_t numberToDelete);
+
+    void freeStructure(uint32_t number, char **usageBitmaps, uint32_t structuresPerGroup);
 
     void createInode(uint16_t fileType, int inodeNumber);
 
@@ -90,6 +95,10 @@ public:
     // allocate first available inode
     int findAvailableInode();
 
+    void freeBlock(uint32_t blockNumber);
+
+    void freeInode(uint32_t inodeNumber);
+
     void write_all(uint32_t diskOffset, char *bufferToWrite, uint32_t bytesToWrite) {
         // write to blocks
         int remainingBytes = bytesToWrite;
@@ -119,6 +128,7 @@ public:
 class Node : public BlockIO { // we implement BlockIO because we
                               // represent data
     Atomic<uint32_t> ref_count{0};
+
 public:
     const uint32_t number; // i-number of this node
     Inode *inode;
@@ -201,6 +211,60 @@ public:
         inode->sizeInBytes += addedBytes;
     }
 
+    void deleteFromDirectory(uint32_t inodeToDelete) {
+        char initBuffer[inode->sizeInBytes];
+        char *buffer = initBuffer;
+        read_all(0, inode->sizeInBytes, buffer);
+
+        uint32_t curByte = 0;
+        while (curByte < inode->sizeInBytes) {
+            uint32_t inodeNumber = *((uint32_t *) buffer);
+            uint32_t entrySize = *((uint16_t *) (buffer + 4));
+            // zero out this directory entry (make it a dummy entry)
+            if (inodeNumber == inodeToDelete) {
+                char zeroEntry[entrySize];
+                // zero out first 4 bytes
+                for (uint32_t i = 0; i < 4; i++) {
+                    zeroEntry[i] = 0;
+                }
+
+                // add in entry size
+                *((uint16_t *) (zeroEntry + 4)) = entrySize;
+
+                // zero out remaining bytes
+                for (uint32_t i = 6; i < entrySize; i++) {
+                    zeroEntry[i] = 0;
+                }
+                
+                write_all(curByte, zeroEntry, entrySize);
+                break;
+            } else {
+                curByte += entrySize;
+                buffer += entrySize;
+            }
+        }
+    }
+
+    // only works for direct blocks currently
+    void deleteNode(Shared<Node> parentDirectory) {
+        if (is_file() || (is_symlink() && inode->sizeInBytes > 60)) {
+            for (uint32_t i = 0; i < 15; i++) {
+                // invalid address. no more blocks to free
+                if (inode->blockAddresses[i] == 0) {
+                    break;
+                } else { // free up block
+                    fileSystem->freeBlock(inode->blockAddresses[i]);
+                }
+            }
+        } else if (is_dir()) {
+            Debug::panic("Haven't handled deletion of directories yet\n");
+        }
+
+        // free my own inode self
+        parentDirectory->deleteFromDirectory(number);
+        fileSystem->freeInode(number);
+    }
+
     // returns the ext2 type of the node
     uint32_t get_type() {
         return type;
@@ -257,10 +321,13 @@ public:
 
         uint32_t curByte = 0;
         while (curByte < inode->sizeInBytes) {
+            uint32_t inodeNumber = *((uint32_t *) buffer);
             uint32_t entrySize = *((uint16_t *) (buffer + 4));
             curByte += entrySize;
             buffer += entrySize;
-            entryCount++;
+            if (inodeNumber > 0) {
+                entryCount++;
+            }
         }
         return entryCount;
 
