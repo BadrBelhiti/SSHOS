@@ -1,9 +1,6 @@
 B = build
 
-TESTS_DIR ?= ..
-
-TESTS = ${sort ${subst .cc,,${notdir ${wildcard ${TESTS_DIR}/*.cc}}}}
-IMAGES = ${addprefix $B/,${addsuffix .img,${TESTS}}}
+IMAGES = $B/kernel.img
 
 all : ${IMAGES}
 
@@ -34,11 +31,6 @@ $B/%.o :  Makefile %.cc
 	@mkdir -p build
 	g++ -I. -c -MD $ -MF $B/$*.d -o $B/$*.o $(CCFLAGS) $*.cc
 
-$B/%.o :  Makefile ${TESTS_DIR}/%.cc
-	@echo "compiling  ${TESTS_DIR}/$*.cc"
-	@mkdir -p build
-	g++ -I. -c -MD $ -MF $B/$*.d -o $B/$*.o $(CCFLAGS) ${TESTS_DIR}/$*.cc
-
 $B/%.o :  Makefile %.S
 	@echo "assembling $*.S"
 	@mkdir -p build
@@ -65,8 +57,8 @@ clean ::
 
 -include $B/*.d
 
-$B/%.kernel : script.ld Makefile $B/%.o $(OFILES)
+$B/%.kernel : script.ld Makefile $(OFILES)
 	@echo "linking    $*.kernel"
 	@mkdir -p build
-	ld -T script.ld -N -m elf_i386 -e start -o $@ $B/$*.o $(OFILES)
+	ld -T script.ld -N -m elf_i386 -e start -o $@ $(OFILES)
 
