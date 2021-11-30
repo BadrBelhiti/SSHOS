@@ -6,7 +6,11 @@
 #define RETURN 0x0A
 #define SPACE 0x20
 #define BACKSPACE 0x08
-#define TAB 0x09
+#define DEL 0x7F
+#define LARROW 0x1C
+#define RARROW 0x1D
+#define UARROW 0x1E
+#define DARROW 0x1F
 
 /*
  * Reads keyboard input using Scan Code Set 1
