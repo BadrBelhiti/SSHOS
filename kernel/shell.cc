@@ -59,7 +59,7 @@ void Shell::refresh() {
         index++;
     }
 
-    set_cursor(video_cursor);
+    set_cursor(video_cursor - 2*leftShifts);
 }
 
 void Shell::vprintf(const char* fmt, va_list ap) {
@@ -103,6 +103,10 @@ bool Shell::handle_return() {
 
     uint32_t cmd_size = cmd_end - curr_cmd_start;
 
+    // Go to end of line in the case cursor has been moved
+    while (buffer[cursor] != 0) {
+        cursor++;
+    }
     // Append line break
     buffer[cursor++] = '\n';
 
@@ -123,40 +127,41 @@ bool Shell::handle_return() {
 
     // TODO: Print prefix based on current working directory and current user
     print_prefix();
-
-    return true;
-}
-
-bool Shell::handle_tab() {
-    // create a tab in the terminal
-    if (buffer[cursor] != 0) {
-        // when cursor has been moved left
-        shift_charsRight(cursor);
-    }
-    buffer[cursor] = '\t';
-    cursor++;
+    leftShifts = 0;
     return true;
 }
 
 bool Shell::handle_del() {
     // delete the character the cursor is currently at
-    buffer[cursor] = 0;
+    if (buffer[cursor] == 0) {
+        return false;
+    }
+
     shift_charsLeft(cursor);
+    leftShifts--;
     return true;
 }
 
 bool Shell::handle_larrow() {
     // move cursor left
-    if (cursor > 0) {
-        cursor--;
+    if (cursor <= curr_cmd_start) {
+        return false;
     }
+    
+    cursor--;
+    leftShifts++;
+    return true;
 }
 
 bool Shell::handle_rarrow() {
-    // monve cursor right
-    if (cursor < 4095 && buffer[cursor] != 0) {
-        cursor++;
+    // move cursor right
+    if (cursor >= 4096 || buffer[cursor] == 0) {
+        return false;
     }
+
+    cursor++;
+    leftShifts--;
+    return true;
 }
 
 bool Shell::handle_normal(char key) {
@@ -173,14 +178,14 @@ bool Shell::handle_normal(char key) {
 }
 
 void Shell::shift_charsRight(uint32_t start) {
-    for (int i = 4095; i > start; i--) {
-        buffer[i] = buffer[i - 1]
+    for (uint32_t i = 4095; i > start; i--) {
+        buffer[i] = buffer[i - 1];
     }   
 }
 
 void Shell::shift_charsLeft(uint32_t start) {
-    for (int i = start; i < 4095; i++) {
-        buffer[i] = buffer[i + 1]
+    for (uint32_t i = start; i < 4095; i++) {
+        buffer[i] = buffer[i + 1];
     }   
 }
 
@@ -190,8 +195,6 @@ bool Shell::handle_key(char key) {
             return handle_backspace();
         case RETURN:
             return handle_return();
-        case TAB:
-            return handle_tab();
         case DEL:
             return handle_del();
         case LARROW:

@@ -16,7 +16,7 @@ bool key_pressed() {
 char getShift(uint32_t notShift) {
     char scancode = scancodes[notShift];
     // Different key pressed from shift, while shift is still held down
-    if (scancode == RETURN || scancode == SPACE || scancode == BACKSPACE || scancode == TAB) {
+    if (scancode == RETURN || scancode == SPACE || scancode == BACKSPACE || scancode == DEL || scancode == LARROW || scancode == RARROW) {
         return scancode;
     }
     else if (scancode >= 'a' && scancode <= 'z') {
@@ -93,12 +93,8 @@ char get_key() {
     // handle caps lock
     else if (pressedKey == 0x3A) {
         if (capsReleased) {
-            if (capsLock) {
-                capsLock = false;
-            }
-            else {
-                capsLock = true;
-            }
+            // switch capsLock boolean
+            capsLock ^= 1;
             capsReleased = false;
         }
     } 
@@ -169,7 +165,6 @@ void Keyboard::init() {
     scancodes[0x1C] = RETURN;
     scancodes[0x39] = SPACE;
     scancodes[0x0E] = BACKSPACE;
-    scancodes[0x0F] = TAB;
     scancodes[0x53] = DEL;
     scancodes[0x4B] = LARROW;
     scancodes[0x4D] = RARROW;

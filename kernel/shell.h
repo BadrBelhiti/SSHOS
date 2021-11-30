@@ -22,6 +22,8 @@ class Shell {
         char buffer[BUF_SIZE];
         uint32_t cursor = 0;
         uint32_t curr_cmd_start = 0;
+        uint32_t leftShifts = 0;
+
     public:
         Shell(bool primitive);
         void start();
@@ -33,7 +35,6 @@ class Shell {
         void clear();
         bool handle_backspace();
         bool handle_return();
-        bool handle_tab();
         bool handle_del();
         bool handle_larrow();
         bool handle_rarrow();
