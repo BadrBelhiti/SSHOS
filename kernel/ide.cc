@@ -37,8 +37,8 @@ static inline long getStatus(uint32_t drive) {
 #define DRQ     0x08
 #define SRV     0x10
 #define DF      0x20
-#define DRDY	0x40
-#define BSY	0x80
+#define DRDY    0x40
+#define BSY 0x80
     
 /* Simple polling PIO interface
    Need to use interrupts and DMA
@@ -70,12 +70,12 @@ void Ide::read_block(uint32_t sector, char* buffer) {
 
     waitForDrive(drive);
 
-    outb(base + 2, 1);			// sector count
-    outb(base + 3, sector >> 0);	// bits 7 .. 0
-    outb(base + 4, sector >> 8);	// bits 15 .. 8
-    outb(base + 5, sector >> 16);	// bits 23 .. 16
+    outb(base + 2, 1);          // sector count
+    outb(base + 3, sector >> 0);    // bits 7 .. 0
+    outb(base + 4, sector >> 8);    // bits 15 .. 8
+    outb(base + 5, sector >> 16);   // bits 23 .. 16
     outb(base + 6, 0xE0 | (ch << 4) | ((sector >> 24) & 0xf));
-    outb(base + 7, 0x20);		// read with retry
+    outb(base + 7, 0x20);       // read with retry
 
     waitForDrive(drive);
 
@@ -88,7 +88,6 @@ void Ide::read_block(uint32_t sector, char* buffer) {
     }
 }
 
-/*
 void Ide::writeSector(uint32_t sector, const void* buffer) {
     LockGuard g{lock};
     const uint32_t* ptr = (const uint32_t*) buffer;
@@ -99,12 +98,12 @@ void Ide::writeSector(uint32_t sector, const void* buffer) {
 
     waitForDrive(drive);
 
-    outb(base + 2, 1);			// sector count
-    outb(base + 3, sector >> 0);	// bits 7 .. 0
-    outb(base + 4, sector >> 8);	// bits 15 .. 8
-    outb(base + 5, sector >> 16);	// bits 23 .. 16
+    outb(base + 2, 1);          // sector count
+    outb(base + 3, sector >> 0);    // bits 7 .. 0
+    outb(base + 4, sector >> 8);    // bits 15 .. 8
+    outb(base + 5, sector >> 16);   // bits 23 .. 16
     outb(base + 6, 0xE0 | (ch << 4) | ((sector >> 24) & 0xf));
-    outb(base + 7, 0x30);		// write
+    outb(base + 7, 0x30);       // write
 
     waitForDrive(drive);
 
@@ -112,7 +111,7 @@ void Ide::writeSector(uint32_t sector, const void* buffer) {
         pause();
     }
 
-    for (uint32_t i=0; i<SectorSize/sizeof(uint32_t); i++) {
+    for (uint32_t i=0; i < block_size / sizeof(uint32_t); i++) {
         outl(base,ptr[i]);
     }
 
@@ -123,31 +122,30 @@ void Ide::writeSector(uint32_t sector, const void* buffer) {
     //waitForDrive(drive);
 
 }
-*/
-
-/*
 
 int32_t Ide::write(uint32_t offset, const void* buffer, uint32_t n) {
-    uint32_t sector = offset / SectorSize;
-    uint32_t start = offset % SectorSize;
+    if (block_size != 512) {
+        Debug::panic("invalid sector size: %u\n", block_size);
+    }
+    uint32_t sector = offset / block_size;
+    uint32_t start = offset % block_size;
 
     uint32_t end = start + n;
-    if (end > SectorSize) end = SectorSize;
+    if (end > block_size) end = block_size;
 
     uint32_t count = end - start;
     
-    if (count == SectorSize) {
+    if (count == block_size) {
         // whole sector
         writeSector(sector,buffer);
     } else if (count != 0) {
-        char data[SectorSize];
-        readSector(sector,data);
+        char data[block_size];
+        read_block(sector,data);
         memcpy(&data[start],buffer,count);
         writeSector(sector,data);
     }
     return count;
 }
-*/
 
 
 void ideStats(void) {
