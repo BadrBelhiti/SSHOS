@@ -5,22 +5,23 @@
 #include "config.h"
 #include "kernel.h"
 #include "atomic.h"
+#include "shell.h"
 
-OutputStream<char> *Debug::sink = 0;
+Shell *Debug::shell = nullptr;
 bool Debug::debugAll = false;
 bool Debug::shutdown_called = false;
 Atomic<uint32_t> Debug::checks{0};
 
-void Debug::init(OutputStream<char> *sink) {
-    Debug::sink = sink;
+void Debug::init(Shell *shell) {
+    Debug::shell = shell;
 }
 
 static InterruptSafeLock lock{};
 
 void Debug::vprintf(const char* fmt, va_list ap) {
-    if (sink) {
+    if (shell) {
         lock.lock();
-        K::vsnprintf(*sink,1000,fmt,ap);
+        K::vsnprintf(*shell,1000,fmt,ap);
         lock.unlock();
     }
 }

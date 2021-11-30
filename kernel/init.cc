@@ -34,11 +34,10 @@ static constexpr uint32_t HEAP_START = 1 * 1024 * 1024;
 static constexpr uint32_t HEAP_SIZE = 5 * 1024 * 1024;
 
 extern "C" void kernelInit(void) {
-
-    U8250 uart;
+    Shell primitive_shell{true};
 
     if (!smpInitDone) {
-        Debug::init(&uart);
+        Debug::init(&primitive_shell);
         Debug::debugAll = false;
         Debug::printf("\n| What just happened? Why am I here?\n");
 
@@ -89,7 +88,7 @@ extern "C" void kernelInit(void) {
         heapInit((void*)HEAP_START,HEAP_SIZE);
 
         /* switch to dynamically allocated UART */
-        Debug::init(new U8250);
+        Debug::init(new Shell(false));
         Debug::printf("| switched to new UART\n");
 
         /* running global constructors */

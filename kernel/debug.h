@@ -6,10 +6,12 @@
 #include "stdint.h"
 #include "atomic.h"
 
+class Shell;
+
 class Debug {
     const char* what;
     bool flag;
-    static OutputStream<char> *sink;
+    static Shell *shell;
 public:
     static Atomic<uint32_t> checks;
     static bool shutdown_called;
@@ -34,7 +36,7 @@ public:
     static void say(const char* fmt, ...);
     static void shutdown();
 
-    static void init(OutputStream<char> *sink);
+    static void init(Shell *shell);
 
     Debug(const char* what) : what(what), flag(false) {
     }
