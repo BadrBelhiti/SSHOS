@@ -2,6 +2,7 @@
 #include "ext2.h"
 #include "ide.h"
 #include "threads.h"
+#include "network.h"
 
 using namespace gheith;
 
@@ -19,6 +20,9 @@ void kernelMain(void) {
     TCB *me = current();
     me->fs = fs;
     me->shell = &shell;
+
+    // Init network driver
+    Network network{};
 
     // Start shell
     shell.start();
