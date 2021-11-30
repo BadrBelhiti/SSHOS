@@ -28,6 +28,7 @@ class Shell {
         uint32_t cursor = 0;
         uint32_t curr_cmd_start = 0;
         uint32_t leftShifts = 0;
+        uint32_t firstRow = 0;
 
     public:
         Shell(bool primitive);

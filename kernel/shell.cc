@@ -39,11 +39,12 @@ void Shell::start() {
 void Shell::refresh() {
     clear_screen(this->config);
 
-    uint32_t index = 0;
+    uint32_t index = get_offset(0, firstRow);
     uint32_t video_cursor = 0;
     while (index < BUF_SIZE && buffer[index] != 0) {
         if (video_cursor >= MAX_ROWS * MAX_COLS * 2) {
             video_cursor = scroll_ln(video_cursor, config);
+            firstRow += 1;
         }
         else if (buffer[index] == '\n') {
             video_cursor = move_offset_to_new_line(video_cursor);

@@ -16,7 +16,8 @@ bool key_pressed() {
 char getShift(uint32_t notShift) {
     char scancode = scancodes[notShift];
     // Different key pressed from shift, while shift is still held down
-    if (scancode == RETURN || scancode == SPACE || scancode == BACKSPACE || scancode == DEL || scancode == LARROW || scancode == RARROW) {
+    if (scancode == RETURN || scancode == SPACE || scancode == BACKSPACE || scancode == DEL || 
+        scancode == LARROW || scancode == RARROW || scancode == UARROW || scancode == DARROW) {
         return scancode;
     }
     else if (scancode >= 'a' && scancode <= 'z') {
