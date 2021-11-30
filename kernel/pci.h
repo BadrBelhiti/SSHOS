@@ -12,6 +12,7 @@
 #define PCI_IO_RESOURCE_MEM 0x00
 #define PCI_BASE_ADDRESS_IO_MASK (~0x03UL )
 #define PCI_IO_RESOURCE_IO 0x01
+#define NETWORK_VENDOR_ID 0x10EC
 
 typedef struct confadd {
     uint8_t reg : 8;
@@ -134,8 +135,7 @@ void pci_read_bases(pci_cfg *cfg, uint32_t bases) {
     }
 }
 
-pci_cfg *find_network_card()
-{
+pci_cfg *find_network_card() {
     // Read 4 bytes at a time
     pci_cfg *cfg = new pci_cfg;
     uint32_t *tmp = (uint32_t *)cfg;
@@ -149,8 +149,11 @@ pci_cfg *find_network_card()
                     tmp[i] = pci_read_config_dword(bus, dev, func, i << 2);
                 }
 
-                if (cfg->vendor_id != 0xFFFF) {
-                    Debug::printf("Found ethernet card on bus: %d, dev: %d, func: %d\n", bus, dev, func);
+                if (cfg->vendor_id == NETWORK_VENDOR_ID) {
+                    cfg->bus = bus;
+                    cfg->dev = dev;
+                    cfg->func = func;
+                    Debug::printf("Found ethernet card on bus: %d, dev: %d, func: %d, vendor_id: 0x%x\n", bus, dev, func, cfg->vendor_id);
                     pci_read_bases(cfg, 6);
                     return cfg;
                 }

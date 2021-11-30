@@ -8,6 +8,7 @@ time `make qemu_cmd` `make qemu_config_flags` \
              --monitor none \
              -device rtl8139,netdev=net0 \
              -netdev user,id=net0,hostfwd=tcp::2222-:2222 \
+             -object filter-dump,id=f1,netdev=net0,file=dump.dat \
              -drive file=kernel/build/kernel.img,index=0,media=disk,format=raw \
              -drive file=$1.data,index=1,media=disk,format=raw \
              -device isa-debug-exit,iobase=0xf4,iosize=0x04 || true

@@ -3,7 +3,7 @@
 
 #include "stdint.h"
 
-#define RX_BUF_SIZE 4096
+#define RX_BUF_SIZE 8 * 1024 + 1500 + 16
 
 class Network {
     private:
