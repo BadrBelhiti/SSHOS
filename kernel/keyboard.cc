@@ -166,9 +166,13 @@ void Keyboard::init() {
     scancodes[0x35] = '/';
 
     /* USEFUL KEYS */
-    scancodes[0x9C] = RETURN;
+    scancodes[0x1C] = RETURN;
     scancodes[0x39] = SPACE;
     scancodes[0x0E] = BACKSPACE;
     scancodes[0x0F] = TAB;
-    // scancodes[0x81] = ESCAPE;
+    scancodes[0x53] = DEL;
+    scancodes[0x4B] = LARROW;
+    scancodes[0x4D] = RARROW;
+    scancodes[0x48] = UARROW;
+    scancodes[0x50] = DARROW;
 }

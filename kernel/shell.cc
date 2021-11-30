@@ -91,7 +91,7 @@ bool Shell::handle_backspace() {
     if (cursor != curr_cmd_start) {
         buffer[cursor - 1] = 0;
         cursor--;
-        
+        shift_charsLeft(cursor);
         return true;
     }
     return false;
@@ -128,9 +128,35 @@ bool Shell::handle_return() {
 }
 
 bool Shell::handle_tab() {
+    // create a tab in the terminal
+    if (buffer[cursor] != 0) {
+        // when cursor has been moved left
+        shift_charsRight(cursor);
+    }
     buffer[cursor] = '\t';
     cursor++;
     return true;
+}
+
+bool Shell::handle_del() {
+    // delete the character the cursor is currently at
+    buffer[cursor] = 0;
+    shift_charsLeft(cursor);
+    return true;
+}
+
+bool Shell::handle_larrow() {
+    // move cursor left
+    if (cursor > 0) {
+        cursor--;
+    }
+}
+
+bool Shell::handle_rarrow() {
+    // monve cursor right
+    if (cursor < 4095 && buffer[cursor] != 0) {
+        cursor++;
+    }
 }
 
 bool Shell::handle_normal(char key) {
@@ -138,9 +164,24 @@ bool Shell::handle_normal(char key) {
         return false;
     }
 
+    if (buffer[cursor] != 0) {
+        shift_charsRight(cursor);
+    }
     buffer[cursor] = key;
     cursor++;
     return true;
+}
+
+void Shell::shift_charsRight(uint32_t start) {
+    for (int i = 4095; i > start; i--) {
+        buffer[i] = buffer[i - 1]
+    }   
+}
+
+void Shell::shift_charsLeft(uint32_t start) {
+    for (int i = start; i < 4095; i++) {
+        buffer[i] = buffer[i + 1]
+    }   
 }
 
 bool Shell::handle_key(char key) {
@@ -151,6 +192,12 @@ bool Shell::handle_key(char key) {
             return handle_return();
         case TAB:
             return handle_tab();
+        case DEL:
+            return handle_del();
+        case LARROW:
+            return handle_larrow();
+        case RARROW:
+            return handle_rarrow();
         default:
             return handle_normal(key);
     }

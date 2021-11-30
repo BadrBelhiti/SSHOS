@@ -34,7 +34,12 @@ class Shell {
         bool handle_backspace();
         bool handle_return();
         bool handle_tab();
+        bool handle_del();
+        bool handle_larrow();
+        bool handle_rarrow();
         bool handle_normal(char key);
+        void shift_charsLeft(uint32_t start);
+        void shift_charsRight(uint32_t start);
         bool handle_key(char key);
         void set_theme(int theme);
 
