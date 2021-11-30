@@ -6,10 +6,6 @@
 #include "ext2.h"
 #include "shared.h"
 #include "threads.h"
-#include "vmm.h"
-#include "user_files.h"
-#include "semaphore.h"
-#include "future.h"
 
 
 namespace gheith {
@@ -30,7 +26,6 @@ namespace gheith {
 
     void entry() {
         auto me = current();
-        vmm_on((uint32_t)me->pd);
         sti();
         me->doYourThing();
         stop();
@@ -40,7 +35,7 @@ namespace gheith {
         while (true) {
             auto it = zombies.remove();
             if (it == nullptr) return;
-            // delete it;
+            delete it;
         }
     }
 
@@ -55,49 +50,13 @@ namespace gheith {
         void doYourThing() override {
             Debug::panic("should not call this");
         }
-        uint32_t interruptEsp() override {
-            // idle threads never enter user mode, this should be ok
-            return 0;
-        }
     };
 
-    TCB::TCB(bool isIdle) : isIdle(isIdle), id(next_id.fetch_add(1)), ref_count(0) {
+    TCB::TCB(bool isIdle) : isIdle(isIdle), id(next_id.fetch_add(1)) {
         saveArea.tcb = this;
-        pd = make_pd();
-
-        saveArea.cr3 = (uint32_t) pd;
-
-        // Initialize resources
-        open_files = new Shared<OpenFile>[10]();
-        semaphores = new Shared<Semaphore>[10]();
-        children = new TCB*[10]();
-
-        // Initialize open files with stdio
-        open_files[0] = Shared<OpenFile>::make(0, false, false);
-        open_files[1] = Shared<OpenFile>::make(1, false, true);
-        open_files[2] = Shared<OpenFile>::make(2, false, true);
-
-        for (uint32_t i = 3; i < 10; i++) {
-            open_files[i] = nullptr;
-        }
-
-        // Zero-initialize semaphores
-        for (uint32_t i = 0; i < 10; i++) {
-            semaphores[i] = nullptr;
-        }
-
-        // Zero-initialize children
-        for (uint32_t i = 0; i < 10; i++) {
-            children[i] = nullptr;
-        }
-
-        // Initialize waiting mechanism
-        exit = new Future<uint32_t>();
-        ASSERT(exit != nullptr);
     }
 
     TCB::~TCB() {
-        delete_pd(pd);
     }
 };
 

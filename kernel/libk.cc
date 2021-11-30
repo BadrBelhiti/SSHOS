@@ -23,17 +23,6 @@ bool K::streq(const char* a, const char* b) {
     }
 }
 
-unsigned int K::strcpy(char *dest, char *src) {
-    uint32_t copied = 0;
-    for (uint32_t i = 0; src[i] != 0; i++) {
-        dest[i] = src[i];
-        copied++;
-    }
-
-    dest[copied] = 0;
-    return copied;
-}
-
 
 extern "C" void __cxa_pure_virtual() {
     Debug::panic("__cxa_pure_virtual called\n");

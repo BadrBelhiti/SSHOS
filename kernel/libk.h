@@ -12,7 +12,6 @@ public:
     static long strlen(const char* str);
     static int isdigit(int c);
     static bool streq(const char* left, const char* right);
-    static unsigned int strcpy(char *dest, char *src);
 
     template <typename T>
     static T min(T v) {

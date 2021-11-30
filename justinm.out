@@ -1,0 +1,16 @@
+*** block size is 1024
+*** inode size is 128
+*** looking at /
+***      is a directory
+***      contains 3 entries
+***      has 3 links
+***      Directory Size: 1024
+*** looking at justin
+***      is a file
+***      contains 11 bytes
+***      has 1 links
+*** looking at new_file
+***      is a file
+***      contains 39 bytes
+***      has 1 links
+*** passed 4 checks
