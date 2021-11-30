@@ -42,7 +42,10 @@ void Shell::refresh() {
     uint32_t index = 0;
     uint32_t video_cursor = 0;
     while (index < BUF_SIZE && buffer[index] != 0) {
-        if (buffer[index] == '\n') {
+        if (video_cursor >= MAX_ROWS * MAX_COLS * 2) {
+            video_cursor = scroll_ln(video_cursor, config);
+        }
+        else if (buffer[index] == '\n') {
             video_cursor = move_offset_to_new_line(video_cursor);
         } 
         else if (buffer[index] == '\t'){
