@@ -13,6 +13,38 @@
 #define PCI_BASE_ADDRESS_IO_MASK (~0x03UL )
 #define PCI_IO_RESOURCE_IO 0x01
 #define NETWORK_VENDOR_ID 0x10EC
+#define PCI_CONFIG_DATA 0xCFC
+#define PCI_INTERRUPT_LINE 0x3C
+
+/* 
+    NOTICE: This code is largely inspired by a working driver we found online.
+    The original author's copyright and license notices are included below.
+*/
+
+//
+// rtl8139.c
+//
+// RealTek RTL8129/RTL8139 PCI NIC network driver
+//
+// Written 1997-2002 by Donald Becker.
+// Ported to sanos 2002 by Michael Ringgaard.
+//
+// This software may be used and distributed according to the terms of
+// the GNU General Public License (GPL), incorporated herein by reference.
+// Drivers based on or derived from this code fall under the GPL and must
+// retain the authorship, copyright and license notice.  This file is not
+// a complete program and may only be used when the entire operating
+// system is licensed under the GPL.
+// 
+// This driver is for boards based on the RTL8129 and RTL8139 PCI ethernet
+// chips.
+// 
+// The author may be reached as becker@scyld.com, or C/O
+// Scyld Computing Corporation
+// 410 Severn Ave., Suite 210
+// Annapolis MD 21403
+// 
+
 
 typedef struct confadd {
     uint8_t reg : 8;
@@ -67,7 +99,7 @@ uint32_t pci_read_config_dword(uint32_t bus, uint32_t dev, uint32_t func, uint32
     u.c.reg = reg & 0xFC;
 
     outl(0xCF8, u.n);
-    base = 0xCFC + (reg & 0x03);
+    base = PCI_CONFIG_DATA + (reg & 0x03);
     return inl(base);
 }
 
@@ -88,7 +120,7 @@ void pci_write_config_dword(uint32_t bus, uint32_t dev, uint32_t func, uint32_t 
     u.c.reg = reg & 0xFC;
 
     outl(0xCF8, u.n);
-    base = 0xCFC + (reg & 0x03);
+    base = PCI_CONFIG_DATA + (reg & 0x03);
     outl(base, val);
 }
 
@@ -96,6 +128,11 @@ uint32_t pci_size(uint32_t base, unsigned long mask) {
     uint32_t size = mask & base;
     size = size & ~(size-1);
     return(size-1);
+}
+
+void pci_read_irq(pci_cfg *cfg) {
+    uint32_t dword = pci_read_config_dword(cfg->bus, cfg->dev, cfg->func, PCI_INTERRUPT_LINE);
+    cfg->irq = dword & 0xFF;
 }
 
 void pci_read_bases(pci_cfg *cfg, uint32_t bases) {
