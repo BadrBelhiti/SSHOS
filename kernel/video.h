@@ -20,6 +20,8 @@ void clear_char(int offset);
 int get_row_from_offset(int offset);
 int get_offset(int col, int row);
 int move_offset_to_new_line(int offset);
+void memory_copy(char *source, char *dest, int nbytes);
+int scroll_ln(int offset, ShellConfig config);
 void clear_screen(ShellConfig config);
 
 #endif
