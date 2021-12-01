@@ -113,7 +113,13 @@ seek:
 	int $48
 	ret
 
-<<<<<<< HEAD:t0.dir/sbin/sys.S
+	# int shell_theme(int theme)
+	.global shell_theme
+shell_theme:
+	mov $14,%eax
+	int $48
+	ret
+
 	# int opendir(const char* fn)
 	.global opendir
 opendir:
@@ -121,18 +127,16 @@ opendir:
 	int $48
 	ret
 
-	# int readdir(int fd)
+	# int readdir(int fd, char* buff_start, uint32_t max_size)
 	.global readdir
 readdir:
 	mov $16,%eax
 	int $48
 	ret
 
-=======
-	# int shell_theme(int theme)
-	.global shell_theme
-shell_theme:
-	mov $14,%eax
+	# int changedir(const char* fn)
+	.global changedir
+changedir:
+	mov $17,%eax
 	int $48
 	ret
->>>>>>> main:t0.dir/usr/lib/sys.S

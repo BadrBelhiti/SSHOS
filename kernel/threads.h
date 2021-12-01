@@ -24,6 +24,11 @@ namespace gheith {
     constexpr static int STACK_BYTES = 8 * 1024;
     constexpr static int STACK_WORDS = STACK_BYTES / sizeof(uint32_t);
 
+    struct CurrentDir {
+        Shared<Node> dir_inode;
+        char* dir_name;
+    };
+
     struct TCB;
 
     struct SaveArea {
@@ -67,6 +72,11 @@ namespace gheith {
         Future<uint32_t> *exit;
 
         Shell *shell;
+
+        // CurrentDir *curr_dir;
+        Shared<Node> dir_inode;
+
+        char *dir_name;
 
         Atomic<uint32_t> ref_count;
 

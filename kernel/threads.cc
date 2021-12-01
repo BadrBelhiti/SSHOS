@@ -94,6 +94,13 @@ namespace gheith {
         // Initialize waiting mechanism
         exit = new Future<uint32_t>();
         ASSERT(exit != nullptr);
+
+        // set the current directory to root
+        // curr_dir->dir_inode = fs->root;
+        // // curr_dir->dir_name[0] = '/';
+        // // curr_dir->dir_name[1] = '\0';
+        // dir_inode = new Shared<Node>();
+        dir_name = new char[50];
     }
 
     TCB::~TCB() {

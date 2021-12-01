@@ -178,15 +178,17 @@ uint32_t Node::entry_count() {
     return count;
 }
 
-char** Node::get_entry_names(uint32_t num_entries) {
+char *Node::get_entry_names(char* buff_start, uint32_t max_size) {
     ASSERT(is_dir());
-    uint32_t index = 0;
-    char** names = new char*[num_entries];
-    entries([names, &index](uint32_t, char* entry_name) {
-        names[index] = new char[K::strlen(entry_name)];
-        K::strcpy(names[index], entry_name);
-        index += 1;
+
+    uint32_t byte = 0;
+    entries([&byte, buff_start](uint32_t, char* entry_name) {
+        K::strcpy(buff_start + byte, entry_name);
+        byte += K::strlen(entry_name) + 1; // increment by name length, +1 for null
     });
-    return names;
+
+    buff_start[byte] = '\0'; // to indicate the end of the list
+
+    return buff_start;
 }
 

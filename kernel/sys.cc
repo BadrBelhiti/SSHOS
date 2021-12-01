@@ -517,14 +517,32 @@ int opendir(const char* fn) {
     return available_id;
 }
 
-int readdir(int fd) {
+int readdir(int fd, char* buff_start, uint32_t max_size) {
     Shared<OpenFile> *open_files = current()->open_files;
     Shared<Node> dir_node = open_files[fd]->vnode;
-    uint32_t num_entries = dir_node->entry_count();
     
-    char** names = dir_node->get_entry_names(num_entries);
+    bzero(buff_start, max_size);
+    dir_node->get_entry_names(buff_start, max_size);
 
     return 1;
+}
+
+int changedir(const char* fn) {
+    // open the directory first
+    int fd = opendir(fn);
+    TCB *tcb = current();
+
+    Shared<OpenFile> *open_files = tcb->open_files;
+    Shared<Node> node = open_files[fd]->vnode;
+
+    // tcb->curr_dir->dir_inode = node;
+    // unsigned i;
+    // for (i = 0; K::strlen((char*)fn); i++) {
+    //     tcb->curr_dir->dir_name[i] = fn[i];
+    // }
+    // tcb->curr_dir->dir_name[i] = '\0';
+
+    return fd;
 }
 
 int shell_theme(int theme) {
@@ -594,10 +612,13 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return shell_theme((int) user_stack[1]);
         // opendir(const char* fn)
         case 15:
-            return opendir(user_stack[1]);
+            return opendir((const char*) user_stack[1]);
         // readdir(int fd)
         case 16:
-            return readdir(user_stack[1]);
+            return readdir(user_stack[1], (char*) user_stack[2], user_stack[3]);
+
+        case 17:
+            return changedir((const char*) user_stack[1]);
     }
 
     return 0;
