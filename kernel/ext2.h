@@ -113,6 +113,8 @@ public:
 
     bool createNode(Shared<Node> dir, const char* name, uint8_t typeIndicator);
 
+    Shared<Node> get_node(uint32_t number);
+
     // If the given node is a directory, return a reference to the
     // node linked to that name in the directory.
     //
@@ -285,6 +287,28 @@ public:
         return type == 0xA000;
     }
 
+    template <typename Work>
+    void entries(Work work) {
+        ASSERT(is_dir());
+        uint32_t offset = 0;
+
+        while (offset < inode->sizeInBytes) {
+            uint32_t inode;
+            read(offset,inode);
+            uint16_t total_size;
+            read(offset+4,total_size);
+            uint8_t name_length;
+            read(offset+6,name_length);
+            auto name = new char[name_length+1];
+            name[name_length] = 0;
+            auto cnt = read_all(offset+8,name_length,name);
+            ASSERT(cnt == name_length);
+            work(inode,name);
+            delete[] name;
+            offset += total_size;
+        }
+    }
+
     // If this node is a symbolic link, fill the buffer with
     // the name the link refers to.
     //
@@ -333,6 +357,9 @@ public:
 
         delete[] initBuffer;
     }
+
+    char *get_entry_names(char* buff_start, uint32_t max_size);
+    uint32_t find(const char* name);
 
     friend class Shared<Node>;
 };

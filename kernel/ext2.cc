@@ -37,6 +37,7 @@ Ext2::Ext2(Shared<Ide> ide) {
 
     // initialize inode and block bitmaps
     this->inodeUsageBitmaps = new char*[numBlockGroups];
+    this->blockUsageBitmaps = new char*[numBlockGroups];
     for (uint32_t i = 0; i < numBlockGroups; i++) {
         // initialize inode bitmap
         this->inodeUsageBitmaps[i] = new char[get_block_size()];
@@ -198,29 +199,74 @@ bool Ext2::createNode(Shared<Node> dir, const char* name, uint8_t typeIndicator)
     return true;
 }
 
-Shared<Node> Ext2::find(Shared<Node> dir, const char* name) {
-    char *buffer = new char[dir->inode->sizeInBytes];
-    dir->read_all(0, dir->inode->sizeInBytes, buffer);
+Shared<Node> Ext2::get_node(uint32_t number) {
+    ASSERT(number > 0);
+    ASSERT(number <= numberOfNodes);
+    auto index = number - 1;
 
-    uint32_t curByte = 0;
-    bool fileFound = false;
-    uint32_t foundInodeNumber = 0;
-    uint32_t entrySize = 0;
-    uint8_t curNameLength = 0;
-    while (curByte < dir->inode->sizeInBytes && !fileFound) {
-        entrySize = *((uint16_t *) (buffer + 4));
-        curNameLength = (uint8_t) buffer[6];
-        if (strEquals(name, buffer + 8, curNameLength)) {
-            foundInodeNumber = *((uint32_t *) buffer);
-            fileFound = true;
+    auto groupIndex = index / iNodesPerGroup;
+    //Debug::printf("groupIndex %d\n",groupIndex);
+    ASSERT(groupIndex < nGroups);
+    auto indexInGroup = index % iNodesPerGroup;
+    auto iTableBase = iNodeTables[groupIndex];
+    ASSERT(iTableBase <= numberOfBlocks);
+    //Debug::printf("iTableBase %d\n",iTableBase);
+    auto nodeOffset = iTableBase * blockSize + indexInGroup * iNodeSize;
+    //Debug::printf("nodeOffset %d\n",nodeOffset);
+
+    auto out = Shared<Node>::make(ide,number,blockSize);
+    ide->read(nodeOffset,out->data);
+    return out;
+}
+
+// If the given node is a directory, return a reference to the
+    // node linked to that name in the directory.
+    //
+    // Returns a null reference if "name" doesn't exist in the directory
+    //
+    // Panics if "dir" is not a directory
+    Shared<Node> find(Shared<Node> current, const char* path) {
+        auto part = new char[257];
+        uint32_t idx = 0;
+
+        while (true) {
+            while (path[idx] == '/') idx++;
+            if ((current == nullptr) || (path[idx] == 0)) {
+                goto done;
+            }
+            uint32_t i = 0;
+            while (true) {
+                auto c = path[idx];
+                if ((c == 0) || (c == '/')) break;
+                idx ++;
+                ASSERT(i < 256);
+                part[i++] = c;
+            }
+            part[i] = 0;
+            auto number = current->find(part);
+            if (number == 0) {
+                current = Shared<Node>{};
+                goto done;
+            } else {
+                current = get_node(number);
+            }
         }
-        curByte += entrySize;
-        buffer += entrySize;
+
+        done:
+            delete[] part;
+            return current;
     }
 
+uint32_t Node::find(const char* name) {
+    uint32_t out = 0;
 
-    Node *foundNode = fileFound ? new Node(get_block_size(), foundInodeNumber, this) : nullptr;
-    return Shared<Node>{foundNode};
+    entries([&out,name](uint32_t number, const char* nm) {
+        if (K::streq(name,nm)) {
+            out = number;
+        }
+    });
+
+    return out;
 }
 
 

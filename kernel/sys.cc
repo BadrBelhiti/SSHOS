@@ -561,6 +561,12 @@ int shell_theme(int theme) {
     return 0;
 }
 
+int touch(const char* fn) {
+    TCB *me = current();
+    bool res = me->fs->createNode(me->fs->root, (char *) fn, ENTRY_FILE_TYPE);
+    return (int) res;
+}
+
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
     uint32_t *user_stack = (uint32_t*) frame[3];
 
@@ -619,6 +625,9 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
 
         case 17:
             return changedir((const char*) user_stack[1]);
+
+        case 18:
+            return touch((const char*) user_stack[1]);
     }
 
     return 0;

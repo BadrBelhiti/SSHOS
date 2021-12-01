@@ -140,3 +140,11 @@ changedir:
 	mov $17,%eax
 	int $48
 	ret
+
+
+	# int touch(const char* fn)
+	.global touch
+touch:
+	mov $18,%eax
+	int $48
+	ret

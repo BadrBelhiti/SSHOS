@@ -1,4 +1,4 @@
-UTILS = color test
+UTILS = color test touch
 
 CFLAGS = -std=c99 -m32 -nostdlib -g -O2 -Wall -Werror
 
