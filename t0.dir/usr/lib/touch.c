@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
     
     // ASSERT(argc == 1);
     printf("%d\n", argc);
-    const char* name = argv[0];
+    const char* name = argv[1];
     touch(name);
 
     return 0;

@@ -13,6 +13,7 @@
 #include "future.h"
 #include "libk.h"
 #include "elf.h"
+#include "keyboard.h"
 
 #define MAX_SEMAPHORES 10
 
@@ -116,6 +117,17 @@ int exit(int status) {
 
     stop();
     return 0;
+}
+
+int readShellLine(char *buf) {
+    char curKey = get_key();
+    uint32_t index = 0;
+
+    while (curKey != RETURN) {
+        buf[index] = curKey;
+        curKey = get_key();
+        index++;
+    }
 }
 
 int write(int fd, char* buf, size_t nbytes) {
@@ -628,6 +640,9 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
 
         case 18:
             return touch((const char*) user_stack[1]);
+
+        case 19:
+            return readShellLine(user_stack[1]);
     }
 
     return 0;

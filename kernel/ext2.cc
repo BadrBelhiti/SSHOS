@@ -21,12 +21,6 @@ Ext2::Ext2(Shared<Ide> ide) {
 
     this->ide->read_all(1024, 1024, (char *) superBlock);
 
-    Debug::printf("total number of inodes: %d\n", superBlock->totalInodes);
-    Debug::printf("total number of blocks: %d\n", superBlock->totalBlocks);
-
-    Debug::printf("Blocks per group: %d\n", superBlock->blocksPerGroup);
-     
-
     // initialize block group table
     // starts at block 1 for any block size greater than 1024
     // block size of 1024 -> starts at block 2
@@ -201,61 +195,60 @@ bool Ext2::createNode(Shared<Node> dir, const char* name, uint8_t typeIndicator)
 
 Shared<Node> Ext2::get_node(uint32_t number) {
     ASSERT(number > 0);
-    ASSERT(number <= numberOfNodes);
+    ASSERT(number <= superBlock->inodesPerGroup);
     auto index = number - 1;
 
-    auto groupIndex = index / iNodesPerGroup;
+    auto groupIndex = index / superBlock->inodesPerGroup;
     //Debug::printf("groupIndex %d\n",groupIndex);
-    ASSERT(groupIndex < nGroups);
-    auto indexInGroup = index % iNodesPerGroup;
-    auto iTableBase = iNodeTables[groupIndex];
-    ASSERT(iTableBase <= numberOfBlocks);
-    //Debug::printf("iTableBase %d\n",iTableBase);
-    auto nodeOffset = iTableBase * blockSize + indexInGroup * iNodeSize;
-    //Debug::printf("nodeOffset %d\n",nodeOffset);
+    ASSERT(groupIndex < numBlockGroups);
+    auto indexInGroup = index % superBlock->inodesPerGroup;
+    auto iTableBase = blockGroupTable[groupIndex].inodeTableAddress;
+    // ASSERT(iTableBase <= numberOfBlocks);
+    auto nodeOffset = iTableBase * get_block_size() + indexInGroup * get_inode_size();
 
-    auto out = Shared<Node>::make(ide,number,blockSize);
-    ide->read(nodeOffset,out->data);
+    auto out = Shared<Node>::make(get_block_size(), number, this);
+    ide->read_all(nodeOffset, 128, (char *) out->inode);
     return out;
 }
 
 // If the given node is a directory, return a reference to the
-    // node linked to that name in the directory.
-    //
-    // Returns a null reference if "name" doesn't exist in the directory
-    //
-    // Panics if "dir" is not a directory
-    Shared<Node> find(Shared<Node> current, const char* path) {
-        auto part = new char[257];
-        uint32_t idx = 0;
+// node linked to that name in the directory.
+//
+// Returns a null reference if "name" doesn't exist in the directory
+//
+// Panics if "dir" is not a directory
+Shared<Node> Ext2::find(Shared<Node> current, const char* path) {
+    auto part = new char[257];
+    uint32_t idx = 0;
 
-        while (true) {
-            while (path[idx] == '/') idx++;
-            if ((current == nullptr) || (path[idx] == 0)) {
-                goto done;
-            }
-            uint32_t i = 0;
-            while (true) {
-                auto c = path[idx];
-                if ((c == 0) || (c == '/')) break;
-                idx ++;
-                ASSERT(i < 256);
-                part[i++] = c;
-            }
-            part[i] = 0;
-            auto number = current->find(part);
-            if (number == 0) {
-                current = Shared<Node>{};
-                goto done;
-            } else {
-                current = get_node(number);
-            }
+     while (true) {
+        while (path[idx] == '/') idx++;
+        if ((current == nullptr) || (path[idx] == 0)) {
+            goto done;
         }
+        uint32_t i = 0;
+        while (true) {
+            auto c = path[idx];
 
-        done:
-            delete[] part;
-            return current;
+            if ((c == 0) || (c == '/')) break;
+            idx ++;
+            ASSERT(i < 256);
+            part[i++] = c;
+        }
+        part[i] = 0;
+        auto number = current->find(part);
+        if (number == 0) {
+            current = Shared<Node>{};
+            goto done;
+        } else {
+            current = get_node(number);
+        }
     }
+
+     done:
+        delete[] part;
+        return current;
+}
 
 uint32_t Node::find(const char* name) {
     uint32_t out = 0;
