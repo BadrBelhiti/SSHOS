@@ -99,6 +99,17 @@ public:
 
     void freeInode(uint32_t inodeNumber);
 
+
+    uint32_t getInodeTableOffset(uint32_t inodeNumber) {
+        uint32_t blockGroup = (inodeNumber - 1) / superBlock->inodesPerGroup;
+        uint32_t inodeIndex = (inodeNumber - 1) % superBlock->inodesPerGroup;
+
+        uint32_t byteInodeTableAddress = blockGroupTable[blockGroup].inodeTableAddress * get_block_size();
+        uint32_t inodeOffset = byteInodeTableAddress + inodeIndex * 128;
+
+        return inodeOffset;
+    }
+
     void write_all(uint32_t diskOffset, char *bufferToWrite, uint32_t bytesToWrite) {
         // write to blocks
         int remainingBytes = bytesToWrite;
@@ -210,7 +221,12 @@ public:
 
         // update file size
         uint32_t addedBytes = (fileOffset + bytesToWrite) - inode->sizeInBytes;
-        inode->sizeInBytes += addedBytes;
+        if (addedBytes > 0) {
+            inode->sizeInBytes += addedBytes;
+        }
+        
+        // update inode table with new size and other info
+        fileSystem->write_all(fileSystem->getInodeTableOffset(number), (char *) inode, fileSystem->get_inode_size());
     }
 
     void deleteFromDirectory(uint32_t inodeToDelete) {

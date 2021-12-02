@@ -27,9 +27,9 @@ int main(int argc, char** argv) {
             // quit
             break;
         }
-        printf("\nbuffer: %s\n", buffer + bytesRead);
         bytesRead += readCount;
         buffer[bytesRead++] = '\n';
+        printf("\n");
     }
     printf("\n");
 

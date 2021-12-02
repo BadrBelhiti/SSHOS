@@ -9,7 +9,6 @@ int main(int argc, char** argv) {
     
     char *fileName = argv[1];
     int file_fd = open(fileName);
-    printf("file fd: %d\n", file_fd);
     if (file_fd < 0) {
         printf("File %s doesn't exist\n", fileName);
         return -1;

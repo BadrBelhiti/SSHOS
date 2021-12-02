@@ -129,13 +129,7 @@ void Ext2::createInode(uint16_t fileType, int inodeNumber) {
         ((uint32_t *) inodeData)[blockIndex] = 0;
     }
 
-    uint32_t blockGroup = (inodeNumber - 1) / superBlock->inodesPerGroup;
-    uint32_t inodeIndex = (inodeNumber - 1) % superBlock->inodesPerGroup;
-
-    uint32_t byteInodeTableAddress = blockGroupTable[blockGroup].inodeTableAddress * get_block_size();
-    uint32_t inodeOffset = byteInodeTableAddress + inodeIndex * 128;
-
-    write_all(inodeOffset, buffer, 128);
+    write_all(getInodeTableOffset(inodeNumber), buffer, 128);
 }
 
 void createDirectoryEntry(const char* name, int inodeNumber, uint8_t typeIndicator, Shared<Node> dir) {

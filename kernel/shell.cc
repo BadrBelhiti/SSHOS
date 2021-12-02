@@ -37,6 +37,7 @@ void Shell::start() {
 }
 
 void Shell::refresh() {
+    bool was = Interrupts::disable();
     clear_screen(this->config);
 
     uint32_t index = get_offset(0, firstRow);
@@ -64,6 +65,7 @@ void Shell::refresh() {
     }
 
     set_cursor(video_cursor - 2*leftShifts);
+    Interrupts::restore(was);
 }
 
 void Shell::vprintf(const char* fmt, va_list ap) {

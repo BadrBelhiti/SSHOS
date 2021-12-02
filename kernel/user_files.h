@@ -41,7 +41,6 @@ class OpenFile {
                     gheith::current()->shell->printf("%c", ((char*) buffer)[i]);
                 }
             } else { // write to file
-                Debug::printf("we are writing and shit holyyyyy\n");
                 vnode->write_all(0, (char *) buffer, n);
             }
 
