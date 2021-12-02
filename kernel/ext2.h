@@ -324,6 +324,7 @@ public:
                 delete[] name;
             }
             offset += total_size;
+            Debug::printf("offset: %d\n", offset);
         }
     }
 
