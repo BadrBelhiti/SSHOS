@@ -148,3 +148,10 @@ touch:
 	mov $18,%eax
 	int $48
 	ret
+
+	# int readShellLine(char* buffer)
+	.global readShellLine
+readShellLine:
+	mov $19,%eax
+	int $48
+	ret

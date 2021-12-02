@@ -1,6 +1,7 @@
 
 #include "keyboard.h"
 #include "machine.h"
+#include "debug.h"
 
 static char scancodes[256];
 bool shiftPressed = false;

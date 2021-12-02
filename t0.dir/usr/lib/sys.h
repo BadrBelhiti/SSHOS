@@ -16,9 +16,12 @@ typedef unsigned int size_t;
 /* never returns, rc is the exit code */
 extern void exit(int rc);
 
+// read line from shell
+int readShellLine(char *buf);
+
 /* open */
 /* opens a file, returns file descriptor, flags is ignored */
-extern int open(const char* fn, int flags);
+extern int open(const char* fn);
 
 /* len */
 /* returns number of bytes in the file, negative indicates error or a console device */

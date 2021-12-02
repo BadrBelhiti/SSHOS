@@ -120,14 +120,40 @@ int exit(int status) {
 }
 
 int readShellLine(char *buf) {
+    auto me = current();
+    me->shell->refresh();
+
     char curKey = get_key();
     uint32_t index = 0;
 
     while (curKey != RETURN) {
-        buf[index] = curKey;
+        // ensure we have a valid key
+        if (curKey == 0 || (curKey == BACKSPACE && index == 0)) {
+            curKey = get_key();
+            continue;
+        }
+
+        // show key in shell
+        if (me->shell->handle_key(curKey)) {
+            me->shell->refresh();
+        }
+
+        // update buffer
+        if (curKey == BACKSPACE) {
+            index--;
+        } else {
+            buf[index] = curKey;
+            index++;
+        }
+
         curKey = get_key();
-        index++;
     }
+
+    // int numBytes = me->shell->cursor - startingCursor;
+    // ::memcpy(buf, me->shell->buffer, numBytes);
+
+    // return number of bytes read
+    return (int) index;
 }
 
 int write(int fd, char* buf, size_t nbytes) {
@@ -435,7 +461,7 @@ int open(const char* fn) {
     }
 
     // Create open file and add it to process's open files
-    open_files[available_id] = Shared<OpenFile>::make(available_id, true, false);
+    open_files[available_id] = Shared<OpenFile>::make(available_id, true, true, false);
 
 
     // Initialize open file
@@ -521,7 +547,7 @@ int opendir(const char* fn) {
     ASSERT(vnode->is_dir()); // make sure this is actually a directory lol
 
     // Create open file and add it to process's open files
-    open_files[available_id] = Shared<OpenFile>::make(available_id, true, false);
+    open_files[available_id] = Shared<OpenFile>::make(available_id, true, false, false);
 
 
     // Initialize file node 
@@ -642,7 +668,7 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return touch((const char*) user_stack[1]);
 
         case 19:
-            return readShellLine(user_stack[1]);
+            return readShellLine((char *) user_stack[1]);
     }
 
     return 0;

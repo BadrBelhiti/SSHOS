@@ -73,9 +73,9 @@ namespace gheith {
         children = new TCB*[10]();
 
         // Initialize open files with stdio
-        open_files[0] = Shared<OpenFile>::make(0, false, false);
-        open_files[1] = Shared<OpenFile>::make(1, false, true);
-        open_files[2] = Shared<OpenFile>::make(2, false, true);
+        open_files[0] = Shared<OpenFile>::make(0, false, false, true);
+        open_files[1] = Shared<OpenFile>::make(1, false, true, true);
+        open_files[2] = Shared<OpenFile>::make(2, false, true, true);
 
         for (uint32_t i = 3; i < 10; i++) {
             open_files[i] = nullptr;
