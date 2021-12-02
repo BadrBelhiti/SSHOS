@@ -482,6 +482,20 @@ int len(int fd) {
     return open_file->vnode->size_in_bytes();;
 }
 
+int removeStructure(int fd) {
+    if (fd >= 10 || fd < 0) {
+        return -1;
+    }
+
+    Shared<OpenFile> open_file = current()->open_files[fd];
+    if (open_file == nullptr) {
+        return -1;
+    }
+
+    open_file->vnode->deleteNode(current()->fs->root);
+    return 1;
+}
+
 int read(int fd, void* buffer, ssize_t n) {
     if (fd >= 10 || fd < 0) {
         return -1;
@@ -602,7 +616,7 @@ int shell_theme(int theme) {
 int touch(const char* fn) {
     TCB *me = current();
     bool res = me->fs->createNode(me->fs->root, (char *) fn, ENTRY_FILE_TYPE);
-    return (int) res;
+    return res ? 1 : -1;
 }
 
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
@@ -669,6 +683,9 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
 
         case 19:
             return readShellLine((char *) user_stack[1]);
+
+        case 20:
+            return removeStructure(user_stack[1]);
     }
 
     return 0;

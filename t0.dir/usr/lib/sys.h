@@ -1,3 +1,4 @@
+
 #ifndef _SYS_H_
 #define _SYS_H_
 
@@ -82,5 +83,11 @@ extern int fork();
 extern int execl(const char* path, const char* arg0, ...);
 
 extern int opendir(const char* fn);
+
+extern int readdir(int fd, char* buff_start, uint32_t max_size);
+
+extern int changedir(const char* fn);
+
+extern int removeStructure(int fd);
 
 #endif

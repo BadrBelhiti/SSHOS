@@ -1,4 +1,4 @@
-UTILS = color test touch atto cat
+UTILS = color test touch atto cat rm
 
 CFLAGS = -std=c99 -m32 -nostdlib -g -O2 -Wall -Werror
 

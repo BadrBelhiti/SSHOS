@@ -260,6 +260,8 @@ uint32_t Node::find(const char* name) {
 char *Node::get_entry_names(char* buff_start, uint32_t max_size) {
     ASSERT(is_dir());
 
+    Debug::printf("inode size: %d\n",size_in_bytes());
+
     uint32_t byte = 0;
     entries([&byte, buff_start](uint32_t, char* entry_name) {
         K::strcpy(buff_start + byte, entry_name);

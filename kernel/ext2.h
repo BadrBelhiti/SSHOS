@@ -312,15 +312,17 @@ public:
             uint32_t inode;
             read(offset,inode);
             uint16_t total_size;
-            read(offset+4,total_size);
-            uint8_t name_length;
-            read(offset+6,name_length);
-            auto name = new char[name_length+1];
-            name[name_length] = 0;
-            auto cnt = read_all(offset+8,name_length,name);
-            ASSERT(cnt == name_length);
-            work(inode,name);
-            delete[] name;
+            if (inode != 0) {
+                read(offset+4,total_size);
+                uint8_t name_length;
+                read(offset+6,name_length);
+                auto name = new char[name_length+1];
+                name[name_length] = 0;
+                auto cnt = read_all(offset+8,name_length,name);
+                ASSERT(cnt == name_length);
+                work(inode,name);
+                delete[] name;
+            }
             offset += total_size;
         }
     }
