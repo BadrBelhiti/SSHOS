@@ -104,15 +104,18 @@ bool Shell::handle_backspace() {
 }
 
 bool Shell::handle_return() {
-    // Calculations needed before advancing cursor
-    uint32_t cmd_end = cursor;
-
-    uint32_t cmd_size = cmd_end - curr_cmd_start;
+    
 
     // Go to end of line in the case cursor has been moved
     while (buffer[cursor] != 0) {
         cursor++;
     }
+
+    // Calculations needed before advancing cursor
+    uint32_t cmd_end = cursor;
+
+    uint32_t cmd_size = cmd_end - curr_cmd_start;
+    
     // Append line break
     buffer[cursor++] = '\n';
 
