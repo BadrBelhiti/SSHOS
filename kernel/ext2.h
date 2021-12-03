@@ -99,6 +99,7 @@ public:
 
     void freeInode(uint32_t inodeNumber);
 
+    Shared<Node> get_node(uint32_t number);
 
     uint32_t getInodeTableOffset(uint32_t inodeNumber) {
         uint32_t blockGroup = (inodeNumber - 1) / superBlock->inodesPerGroup;
@@ -123,8 +124,6 @@ public:
     }
 
     bool createNode(Shared<Node> dir, const char* name, uint8_t typeIndicator);
-
-    Shared<Node> get_node(uint32_t number);
 
     // If the given node is a directory, return a reference to the
     // node linked to that name in the directory.
@@ -164,6 +163,8 @@ public:
     }
 
     virtual ~Node() {}
+
+    Shared<Node> get_node(uint32_t number);
 
     // How many bytes does this i-node represent
     //    - for a file, the size of the file
@@ -264,8 +265,26 @@ public:
     }
 
     // only works for direct blocks currently
-    void deleteNode(Shared<Node> parentDirectory) {
-        if (is_file() || (is_symlink() && inode->sizeInBytes > 60)) {
+    void deleteNode(Shared<Node> parentDirectory) {  
+        if (is_dir()) {
+            uint32_t curByte = 0;
+            while (curByte < size_in_bytes()) {
+                uint32_t inodeNumber;
+                read(curByte, inodeNumber);
+                if (inodeNumber != 0) {
+                    Shared<Node> childNode = fileSystem->get_node(inodeNumber);
+                    childNode->deleteNode(Shared<Node>{this});
+                    Debug::printf("deleting node: %d\n", inodeNumber);
+                }
+                uint32_t entrySize;
+                read(curByte + 4, entrySize);
+        
+                curByte += entrySize;
+            }
+        }
+
+        // delete all data blocks associated with inode
+        if (!(is_symlink() && inode->sizeInBytes < 60)) {
             for (uint32_t i = 0; i < 15; i++) {
                 // invalid address. no more blocks to free
                 if (inode->blockAddresses[i] == 0) {
@@ -274,8 +293,6 @@ public:
                     fileSystem->freeBlock(inode->blockAddresses[i]);
                 }
             }
-        } else if (is_dir()) {
-            Debug::panic("Haven't handled deletion of directories yet\n");
         }
 
         // free my own inode self
@@ -356,7 +373,6 @@ public:
     // Panics if not a directory
     uint32_t entry_count() {
         uint32_t entryCount = 0;
-        // char *buffer = new char[inode->sizeInBytes];
         char *buffer = new char[inode->sizeInBytes];
         char *initBuffer = buffer;
         read_all(0, inode->sizeInBytes, buffer);
