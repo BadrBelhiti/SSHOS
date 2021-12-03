@@ -134,13 +134,12 @@ readdir:
 	int $48
 	ret
 
-	# int changedir(const char* fn)
-	.global changedir
-changedir:
+	# int chdir(const char* fn)
+	.global chdir
+chdir:
 	mov $17,%eax
 	int $48
 	ret
-
 
 	# int touch(const char* fn)
 	.global touch
@@ -160,5 +159,12 @@ readShellLine:
 	.global removeStructure
 removeStructure:
 	mov $20,%eax
+	int $48
+	ret
+
+	# int getcwd(char* buff)
+	.global getcwd
+getcwd:
+	mov $21,%eax
 	int $48
 	ret

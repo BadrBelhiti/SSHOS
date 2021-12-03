@@ -579,20 +579,30 @@ int readdir(int fd, char* buff_start, uint32_t max_size) {
     return 1;
 }
 
-int changedir(const char* fn) {
+int chdir(const char* fn) {
     // open the directory first
     int fd = opendir(fn);
     TCB *tcb = current();
 
+    Debug::printf("here, %d\n", fd);
+
     Shared<OpenFile> *open_files = tcb->open_files;
     Shared<Node> node = open_files[fd]->vnode;
 
-    // tcb->curr_dir->dir_inode = node;
+    Debug::printf("here\n");
+
+    tcb->dir_inode = node;
+    bzero(tcb->dir_name, K::strlen((char*)fn));
+    // K::strcpy(tcb->dir_name, (char *) fn);
+    memcpy(tcb->dir_name, (char *) fn,  K::strlen((char*)fn));
     // unsigned i;
     // for (i = 0; K::strlen((char*)fn); i++) {
-    //     tcb->curr_dir->dir_name[i] = fn[i];
+    //     tcb->dir_name[i] = fn[i];
     // }
-    // tcb->curr_dir->dir_name[i] = '\0';
+    Debug::printf("here, %s, %d\n", (char*)fn, K::strlen((char*)fn));
+    tcb->dir_name[K::strlen((char*)fn)] = '\0';
+
+    Debug::printf("new directory name: %s\n", tcb->dir_name);
 
     return fd;
 }
@@ -617,6 +627,15 @@ int touch(const char* fn) {
     TCB *me = current();
     bool res = me->fs->createNode(me->fs->root, (char *) fn, ENTRY_FILE_TYPE);
     return res ? 1 : -1;
+}
+
+int getcwd(char* buff) {
+    TCB *me = current();
+    memcpy(buff, me->dir_name, K::strlen(me->dir_name));
+    // K::strcpy(buff, me->dir_name);
+    buff[K::strlen(me->dir_name)] = '\0';
+    Debug::printf("%s, %s\n", me->dir_name, buff);
+    return K::strlen(me->dir_name);
 }
 
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
@@ -676,7 +695,7 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return readdir(user_stack[1], (char*) user_stack[2], user_stack[3]);
 
         case 17:
-            return changedir((const char*) user_stack[1]);
+            return chdir((const char*) user_stack[1]);
 
         case 18:
             return touch((const char*) user_stack[1]);
@@ -686,6 +705,9 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
 
         case 20:
             return removeStructure(user_stack[1]);
+
+        case 21:
+            return getcwd((char*) user_stack[1]);
     }
 
     return 0;

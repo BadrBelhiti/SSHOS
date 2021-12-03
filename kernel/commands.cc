@@ -78,13 +78,16 @@ bool CommandRunner::execute(char *cmd) {
     argv[argc] = 0;
 
     // User programs must run on different thread with same shell
-    shellProgram(current(), make_pd(), 10, [me, full_program_name, argv] {
+    TCB *commandProcess = shellProgram(current(), make_pd(), 10, [me, full_program_name, argv] {
         execl(full_program_name, (const char**) argv);
     });
 
 
     uint32_t status = 1;
     wait(10, &status);
+
+    current()->dir_inode = commandProcess->dir_inode;
+    memcpy(current()->dir_name, commandProcess->dir_name, K::strlen(commandProcess->dir_name));
 
     return true;
 }

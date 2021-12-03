@@ -99,8 +99,13 @@ namespace gheith {
         // curr_dir->dir_inode = fs->root;
         // // curr_dir->dir_name[0] = '/';
         // // curr_dir->dir_name[1] = '\0';
-        // dir_inode = new Shared<Node>();
+        // dir_inode = fs->root;
+        // ASSERT(fs != nullptr);
+        // ASSERT(fs->root != nullptr);
+        Debug::printf("%x\n", fs);
         dir_name = new char[50];
+        // dir_name[0] = '/';
+        // dir_name[1] = '\0';
     }
 
     TCB::~TCB() {
