@@ -339,6 +339,10 @@ public:
                 ASSERT(cnt == name_length);
                 work(inode,name);
                 delete[] name;
+            } else {
+                Debug::printf("reached a zero inode\n");
+                Debug::printf("entry size: %d\n", total_size);
+                Debug::printf("cur offset: %d\n", offset);
             }
             offset += total_size;
         }
