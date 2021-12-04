@@ -37,6 +37,7 @@ void Shell::start() {
 }
 
 void Shell::refresh() {
+    bool was = Interrupts::disable();
     clear_screen(this->config);
 
     uint32_t index = get_offset(0, firstRow);
@@ -64,6 +65,7 @@ void Shell::refresh() {
     }
 
     set_cursor(video_cursor - 2*leftShifts);
+    Interrupts::restore(was);
 }
 
 void Shell::vprintf(const char* fmt, va_list ap) {
@@ -102,15 +104,18 @@ bool Shell::handle_backspace() {
 }
 
 bool Shell::handle_return() {
-    // Calculations needed before advancing cursor
-    uint32_t cmd_end = cursor;
-
-    uint32_t cmd_size = cmd_end - curr_cmd_start;
+    
 
     // Go to end of line in the case cursor has been moved
     while (buffer[cursor] != 0) {
         cursor++;
     }
+
+    // Calculations needed before advancing cursor
+    uint32_t cmd_end = cursor;
+
+    uint32_t cmd_size = cmd_end - curr_cmd_start;
+    
     // Append line break
     buffer[cursor++] = '\n';
 

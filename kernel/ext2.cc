@@ -21,12 +21,6 @@ Ext2::Ext2(Shared<Ide> ide) {
 
     this->ide->read_all(1024, 1024, (char *) superBlock);
 
-    Debug::printf("total number of inodes: %d\n", superBlock->totalInodes);
-    Debug::printf("total number of blocks: %d\n", superBlock->totalBlocks);
-
-    Debug::printf("Blocks per group: %d\n", superBlock->blocksPerGroup);
-     
-
     // initialize block group table
     // starts at block 1 for any block size greater than 1024
     // block size of 1024 -> starts at block 2
@@ -37,6 +31,7 @@ Ext2::Ext2(Shared<Ide> ide) {
 
     // initialize inode and block bitmaps
     this->inodeUsageBitmaps = new char*[numBlockGroups];
+    this->blockUsageBitmaps = new char*[numBlockGroups];
     for (uint32_t i = 0; i < numBlockGroups; i++) {
         // initialize inode bitmap
         this->inodeUsageBitmaps[i] = new char[get_block_size()];
@@ -134,13 +129,7 @@ void Ext2::createInode(uint16_t fileType, int inodeNumber) {
         ((uint32_t *) inodeData)[blockIndex] = 0;
     }
 
-    uint32_t blockGroup = (inodeNumber - 1) / superBlock->inodesPerGroup;
-    uint32_t inodeIndex = (inodeNumber - 1) % superBlock->inodesPerGroup;
-
-    uint32_t byteInodeTableAddress = blockGroupTable[blockGroup].inodeTableAddress * get_block_size();
-    uint32_t inodeOffset = byteInodeTableAddress + inodeIndex * 128;
-
-    write_all(inodeOffset, buffer, 128);
+    write_all(getInodeTableOffset(inodeNumber), buffer, 128);
 }
 
 void createDirectoryEntry(const char* name, int inodeNumber, uint8_t typeIndicator, Shared<Node> dir) {
@@ -198,26 +187,86 @@ bool Ext2::createNode(Shared<Node> dir, const char* name, uint8_t typeIndicator)
     return true;
 }
 
-Shared<Node> Ext2::find(Shared<Node> dir, const char* name) {
-    char *buffer = new char[dir->inode->sizeInBytes];
-    dir->read_all(0, dir->inode->sizeInBytes, buffer);
+Shared<Node> Ext2::get_node(uint32_t number) {
+    ASSERT(number > 0);
+    ASSERT(number <= superBlock->inodesPerGroup);
+    auto index = number - 1;
 
-    uint32_t curByte = 0;
-    bool fileFound = false;
-    uint32_t foundInodeNumber = 0;
-    uint32_t entrySize = 0;
-    uint8_t curNameLength = 0;
-    while (curByte < dir->inode->sizeInBytes && !fileFound) {
-        entrySize = *((uint16_t *) (buffer + 4));
-        curNameLength = (uint8_t) buffer[6];
-        if (strEquals(name, buffer + 8, curNameLength)) {
-            foundInodeNumber = *((uint32_t *) buffer);
-            fileFound = true;
+    auto groupIndex = index / superBlock->inodesPerGroup;
+    //Debug::printf("groupIndex %d\n",groupIndex);
+    ASSERT(groupIndex < numBlockGroups);
+    auto indexInGroup = index % superBlock->inodesPerGroup;
+    auto iTableBase = blockGroupTable[groupIndex].inodeTableAddress;
+    // ASSERT(iTableBase <= numberOfBlocks);
+    auto nodeOffset = iTableBase * get_block_size() + indexInGroup * get_inode_size();
+
+    auto out = Shared<Node>::make(get_block_size(), number, this);
+    ide->read_all(nodeOffset, 128, (char *) out->inode);
+    return out;
+}
+
+// If the given node is a directory, return a reference to the
+// node linked to that name in the directory.
+//
+// Returns a null reference if "name" doesn't exist in the directory
+//
+// Panics if "dir" is not a directory
+Shared<Node> Ext2::find(Shared<Node> current, const char* path) {
+    auto part = new char[257];
+    uint32_t idx = 0;
+
+     while (true) {
+        while (path[idx] == '/') idx++;
+        if ((current == nullptr) || (path[idx] == 0)) {
+            goto done;
         }
-        curByte += entrySize;
-        buffer += entrySize;
+        uint32_t i = 0;
+        while (true) {
+            auto c = path[idx];
+
+            if ((c == 0) || (c == '/')) break;
+            idx ++;
+            ASSERT(i < 256);
+            part[i++] = c;
+        }
+        part[i] = 0;
+        auto number = current->find(part);
+        if (number == 0) {
+            current = Shared<Node>{};
+            goto done;
+        } else {
+            current = get_node(number);
+        }
     }
 
-    Node *foundNode = fileFound ? new Node(get_block_size(), foundInodeNumber, this) : nullptr;
-    return Shared<Node>{foundNode};
+     done:
+        delete[] part;
+        return current;
+}
+
+uint32_t Node::find(const char* name) {
+    uint32_t out = 0;
+
+    entries([&out,name](uint32_t number, const char* nm) {
+        if (K::streq(name,nm)) {
+            out = number;
+        }
+    });
+
+    return out;
+}
+
+
+char *Node::get_entry_names(char* buff_start, uint32_t max_size) {
+    ASSERT(is_dir());
+
+    uint32_t byte = 0;
+    entries([&byte, buff_start](uint32_t, char* entry_name) {
+        K::strcpy(buff_start + byte, entry_name);
+        byte += K::strlen(entry_name) + 1; // increment by name length, +1 for null
+    });
+
+    buff_start[byte] = '\0'; // to indicate the end of the list
+
+    return buff_start;
 }

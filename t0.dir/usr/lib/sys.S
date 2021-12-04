@@ -119,3 +119,52 @@ shell_theme:
 	mov $14,%eax
 	int $48
 	ret
+
+	# int opendir(const char* fn)
+	.global opendir
+opendir:
+	mov $15,%eax
+	int $48
+	ret
+
+	# int readdir(int fd, char* buff_start, uint32_t max_size)
+	.global readdir
+readdir:
+	mov $16,%eax
+	int $48
+	ret
+
+	# int chdir(const char* fn)
+	.global chdir
+chdir:
+	mov $17,%eax
+	int $48
+	ret
+
+	# int touch(const char* fn)
+	.global touch
+touch:
+	mov $18,%eax
+	int $48
+	ret
+
+	# int readShellLine(char* buffer)
+	.global readShellLine
+readShellLine:
+	mov $19,%eax
+	int $48
+	ret
+
+	# int removeStructure(int fd)
+	.global removeStructure
+removeStructure:
+	mov $20,%eax
+	int $48
+	ret
+
+	# int getcwd(char* buff)
+	.global getcwd
+getcwd:
+	mov $21,%eax
+	int $48
+	ret

@@ -24,6 +24,11 @@ namespace gheith {
     constexpr static int STACK_BYTES = 8 * 1024;
     constexpr static int STACK_WORDS = STACK_BYTES / sizeof(uint32_t);
 
+    // struct CurrentDir {
+    //     Shared<Node> dir_inode;
+    //     char* dir_name;
+    // };
+
     struct TCB;
 
     struct SaveArea {
@@ -67,6 +72,11 @@ namespace gheith {
         Future<uint32_t> *exit;
 
         Shell *shell;
+
+        // CurrentDir *curr_dir;
+        Shared<Node> dir_inode;
+
+        char *dir_name;
 
         Atomic<uint32_t> ref_count;
 
@@ -232,7 +242,7 @@ void childThread(gheith::TCB *parent, uint32_t* pd, uint32_t id, T work) {
 }
 
 template <typename T>
-void shellProgram(gheith::TCB *parent, uint32_t* pd, uint32_t id, T work) {
+gheith::TCB *shellProgram(gheith::TCB *parent, uint32_t* pd, uint32_t id, T work) {
     using namespace gheith;
 
     delete_zombies();
@@ -245,10 +255,17 @@ void shellProgram(gheith::TCB *parent, uint32_t* pd, uint32_t id, T work) {
     parent->children[id - 10] = tcb;
     tcb->pid = id;
     tcb->fs = parent->fs;
+    tcb->dir_inode = parent->dir_inode;
+    memcpy(tcb->dir_name, parent->dir_name, K::strlen(parent->dir_name));
+    tcb->dir_name[K::strlen(parent->dir_name)] = '\0';
+    // Debug::printf("in shell thing %s, %s\n",tcb->dir_name, parent->dir_name );
+    
     tcb->shell = parent->shell;
 
     ASSERT(tcb->exit != nullptr);
     schedule(tcb);
+
+    return tcb;
 }
 
 #endif

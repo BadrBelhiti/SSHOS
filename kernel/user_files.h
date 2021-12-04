@@ -10,8 +10,15 @@ class OpenFile {
         uint32_t fd;
         bool readable;
         bool writeable;
+        bool consoleDevice;
 
-        OpenFile(uint32_t fd, bool readable, bool writeable) : ref_count(0), offset(0), fd(fd), readable(readable), writeable(writeable) {}
+        OpenFile(uint32_t fd, bool readable, bool writeable, bool consoleDevice) : ref_count(0) {
+            this->offset = 0;
+            this->fd = fd;
+            this->readable = readable;
+            this->writeable = writeable;
+            this->consoleDevice = consoleDevice;
+        }
 
         int read(void *buffer, uint32_t n) {
             if (!this->readable) {
@@ -29,8 +36,12 @@ class OpenFile {
                 return -1;
             }
 
-            for (uint32_t i = 0; i < n; i++) {
-                gheith::current()->shell->printf("%c", ((char*) buffer)[i]);
+            if (consoleDevice && writeable) { // write to shell
+                for (uint32_t i = 0; i < n; i++) {
+                    gheith::current()->shell->printf("%c", ((char*) buffer)[i]);
+                }
+            } else { // write to file
+                vnode->write_all(0, (char *) buffer, n);
             }
 
             return n;

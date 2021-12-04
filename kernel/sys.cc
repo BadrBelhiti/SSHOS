@@ -13,6 +13,7 @@
 #include "future.h"
 #include "libk.h"
 #include "elf.h"
+#include "keyboard.h"
 
 #define MAX_SEMAPHORES 10
 
@@ -116,6 +117,43 @@ int exit(int status) {
 
     stop();
     return 0;
+}
+
+int readShellLine(char *buf) {
+    auto me = current();
+    me->shell->refresh();
+
+    char curKey = get_key();
+    uint32_t index = 0;
+
+    while (curKey != RETURN) {
+        // ensure we have a valid key
+        if (curKey == 0 || (curKey == BACKSPACE && index == 0)) {
+            curKey = get_key();
+            continue;
+        }
+
+        // show key in shell
+        if (me->shell->handle_key(curKey)) {
+            me->shell->refresh();
+        }
+
+        // update buffer
+        if (curKey == BACKSPACE) {
+            index--;
+        } else {
+            buf[index] = curKey;
+            index++;
+        }
+
+        curKey = get_key();
+    }
+
+    // int numBytes = me->shell->cursor - startingCursor;
+    // ::memcpy(buf, me->shell->buffer, numBytes);
+
+    // return number of bytes read
+    return (int) index;
 }
 
 int write(int fd, char* buf, size_t nbytes) {
@@ -415,7 +453,12 @@ int open(const char* fn) {
     }
 
     // Find file
-    Shared<Node> vnode = find_by_absolute(fn);
+    Shared<Node> vnode;
+    if (fn[0] != '/') {
+        vnode = current()->fs->find(current()->dir_inode, fn);
+    } else {
+        vnode = find_by_absolute(fn);
+    }
 
     // File doesn't exist
     if (vnode == nullptr) {
@@ -423,7 +466,7 @@ int open(const char* fn) {
     }
 
     // Create open file and add it to process's open files
-    open_files[available_id] = Shared<OpenFile>::make(available_id, true, false);
+    open_files[available_id] = Shared<OpenFile>::make(available_id, true, true, false);
 
 
     // Initialize open file
@@ -442,6 +485,25 @@ int len(int fd) {
     }
 
     return open_file->vnode->size_in_bytes();;
+}
+
+int removeStructure(int fd, bool removeFromRoot) {
+    if (fd >= 10 || fd < 0) {
+        return -1;
+    }
+
+    Shared<OpenFile> open_file = current()->open_files[fd];
+    if (open_file == nullptr) {
+        return -1;
+    }
+
+    if (removeFromRoot) {
+        open_file->vnode->deleteNode(current()->fs->root);
+    } else {
+        open_file->vnode->deleteNode(current()->dir_inode);
+    }
+    
+    return 1;
 }
 
 int read(int fd, void* buffer, ssize_t n) {
@@ -483,6 +545,94 @@ int seek(int fd, uint32_t off) {
     return open_file->offset;
 }
 
+
+int opendir(const char* fn) {
+    Shared<OpenFile> *open_files = current()->open_files;
+    uint32_t available_id = 0;
+
+    // Look for available file descriptor
+    while (open_files[available_id] != nullptr && available_id < 10) {
+        available_id++;
+    }
+
+    // Maximum open file count has been reached
+    if (available_id == 10) {
+        return -1;
+    }
+
+    Shared<Node> vnode;
+    // Find directory, same as findinng file
+    if (fn[0] == '/') {
+        vnode = find_by_absolute(fn);
+    } else {
+        vnode = current()->fs->find(current()->dir_inode, fn);
+    }
+
+    // Directory doesn't exist
+    if (vnode == nullptr) {
+        return -1;
+    }
+
+    ASSERT(vnode->is_dir()); // make sure this is actually a directory lol
+
+    // Create open file and add it to process's open files
+    open_files[available_id] = Shared<OpenFile>::make(available_id, true, false, false);
+
+
+    // Initialize file node 
+    open_files[available_id]->vnode = vnode;
+    return available_id;
+}
+
+int readdir(int fd, char* buff_start, uint32_t max_size) {
+    Shared<OpenFile> *open_files = current()->open_files;
+    Shared<Node> dir_node = open_files[fd]->vnode;
+    
+    bzero(buff_start, max_size);
+    dir_node->get_entry_names(buff_start, max_size);
+
+    return 1;
+}
+
+int getcwd(char* buff) {
+    TCB *me = current();
+    // Debug::printf("in cwd: %s\n", me->dir_name);
+    memcpy(buff, me->dir_name, K::strlen(me->dir_name));
+    // K::strcpy(buff, me->dir_name);
+    buff[K::strlen(me->dir_name)] = '\0';
+    // Debug::printf("%s, %s\n", me->dir_name, buff);
+    return K::strlen(me->dir_name);
+}
+
+int chdir(const char* fn) {
+    // open the directory first
+    int fd = opendir(fn);
+    if (fd == -1) return -1;
+    TCB *tcb = current();
+
+    Shared<OpenFile> *open_files = tcb->open_files;
+    Shared<Node> node = open_files[fd]->vnode;
+
+    tcb->dir_inode = node;
+    bzero(tcb->dir_name, K::strlen((char*)fn));
+    // bzero(tcb->dir_name, 10);
+    int len = getcwd(tcb->dir_name);
+
+    if (tcb->dir_inode != current()->fs->root) {
+        tcb->dir_name[len] = '/';
+        len++;
+    }
+
+    memcpy(tcb->dir_name + len, (char *) fn,  K::strlen((char*)fn));
+    tcb->dir_name[K::strlen((char*)fn) +1] = '\0';
+
+
+
+    // Debug::printf("new directory name: %s\n", tcb->dir_name);
+
+    return fd;
+}
+
 int shell_theme(int theme) {
     TCB *me = current();
 
@@ -497,6 +647,17 @@ int shell_theme(int theme) {
     }
 
     return 0;
+}
+
+int touch(const char* fn) {
+    TCB *me = current();
+    bool res;
+    if (fn[0] == '/') {
+        res = me->fs->createNode(me->fs->root, (char *) fn, ENTRY_FILE_TYPE);
+    } else {
+        res = me->fs->createNode(me->dir_inode, (char *) fn, ENTRY_FILE_TYPE);
+    }
+    return res ? 1 : -1;
 }
 
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
@@ -548,6 +709,26 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
         // println(char *str)
         case 14:
             return shell_theme((int) user_stack[1]);
+        // opendir(const char* fn)
+        case 15:
+            return opendir((const char*) user_stack[1]);
+        // readdir(int fd)
+        case 16:
+            return readdir(user_stack[1], (char*) user_stack[2], user_stack[3]);
+
+        case 17:
+            return chdir((const char*) user_stack[1]);
+
+        case 18:
+            return touch((const char*) user_stack[1]);
+
+        case 19:
+            return readShellLine((char *) user_stack[1]);
+
+        case 20:
+            return removeStructure(user_stack[1], user_stack[2]);
+        case 21:
+            return getcwd((char*) user_stack[1]);
     }
 
     return 0;

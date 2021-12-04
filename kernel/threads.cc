@@ -73,9 +73,9 @@ namespace gheith {
         children = new TCB*[10]();
 
         // Initialize open files with stdio
-        open_files[0] = Shared<OpenFile>::make(0, false, false);
-        open_files[1] = Shared<OpenFile>::make(1, false, true);
-        open_files[2] = Shared<OpenFile>::make(2, false, true);
+        open_files[0] = Shared<OpenFile>::make(0, false, false, true);
+        open_files[1] = Shared<OpenFile>::make(1, false, true, true);
+        open_files[2] = Shared<OpenFile>::make(2, false, true, true);
 
         for (uint32_t i = 3; i < 10; i++) {
             open_files[i] = nullptr;
@@ -94,6 +94,18 @@ namespace gheith {
         // Initialize waiting mechanism
         exit = new Future<uint32_t>();
         ASSERT(exit != nullptr);
+
+        // set the current directory to root
+        // curr_dir->dir_inode = fs->root;
+        // // curr_dir->dir_name[0] = '/';
+        // // curr_dir->dir_name[1] = '\0';
+        // dir_inode = fs->root;
+        // ASSERT(fs != nullptr);
+        // ASSERT(fs->root != nullptr);
+        // Debug::printf("%x\n", fs);
+        dir_name = new char[50];
+        dir_name[0] = '/';
+        dir_name[1] = '\0';
     }
 
     TCB::~TCB() {
