@@ -102,10 +102,10 @@ namespace gheith {
         // dir_inode = fs->root;
         // ASSERT(fs != nullptr);
         // ASSERT(fs->root != nullptr);
-        Debug::printf("%x\n", fs);
+        // Debug::printf("%x\n", fs);
         dir_name = new char[50];
-        // dir_name[0] = '/';
-        // dir_name[1] = '\0';
+        dir_name[0] = '/';
+        dir_name[1] = '\0';
     }
 
     TCB::~TCB() {

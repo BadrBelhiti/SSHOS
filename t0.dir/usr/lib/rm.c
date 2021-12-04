@@ -13,5 +13,5 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    return removeStructure(fd);
+    return removeStructure(fd, fileName[0] == '/');
 }

@@ -453,7 +453,12 @@ int open(const char* fn) {
     }
 
     // Find file
-    Shared<Node> vnode = find_by_absolute(fn);
+    Shared<Node> vnode;
+    if (fn[0] != '/') {
+        vnode = current()->fs->find(current()->dir_inode, fn);
+    } else {
+        vnode = find_by_absolute(fn);
+    }
 
     // File doesn't exist
     if (vnode == nullptr) {
@@ -482,7 +487,7 @@ int len(int fd) {
     return open_file->vnode->size_in_bytes();;
 }
 
-int removeStructure(int fd) {
+int removeStructure(int fd, bool removeFromRoot) {
     if (fd >= 10 || fd < 0) {
         return -1;
     }
@@ -492,7 +497,12 @@ int removeStructure(int fd) {
         return -1;
     }
 
-    open_file->vnode->deleteNode(current()->fs->root);
+    if (removeFromRoot) {
+        open_file->vnode->deleteNode(current()->fs->root);
+    } else {
+        open_file->vnode->deleteNode(current()->dir_inode);
+    }
+    
     return 1;
 }
 
@@ -550,8 +560,13 @@ int opendir(const char* fn) {
         return -1;
     }
 
+    Shared<Node> vnode;
     // Find directory, same as findinng file
-    Shared<Node> vnode = find_by_absolute(fn);
+    if (fn[0] == '/') {
+        vnode = find_by_absolute(fn);
+    } else {
+        vnode = current()->fs->find(current()->dir_inode, fn);
+    }
 
     // Directory doesn't exist
     if (vnode == nullptr) {
@@ -579,30 +594,41 @@ int readdir(int fd, char* buff_start, uint32_t max_size) {
     return 1;
 }
 
+int getcwd(char* buff) {
+    TCB *me = current();
+    // Debug::printf("in cwd: %s\n", me->dir_name);
+    memcpy(buff, me->dir_name, K::strlen(me->dir_name));
+    // K::strcpy(buff, me->dir_name);
+    buff[K::strlen(me->dir_name)] = '\0';
+    // Debug::printf("%s, %s\n", me->dir_name, buff);
+    return K::strlen(me->dir_name);
+}
+
 int chdir(const char* fn) {
     // open the directory first
     int fd = opendir(fn);
+    if (fd == -1) return -1;
     TCB *tcb = current();
-
-    Debug::printf("here, %d\n", fd);
 
     Shared<OpenFile> *open_files = tcb->open_files;
     Shared<Node> node = open_files[fd]->vnode;
 
-    Debug::printf("here\n");
-
     tcb->dir_inode = node;
     bzero(tcb->dir_name, K::strlen((char*)fn));
-    // K::strcpy(tcb->dir_name, (char *) fn);
-    memcpy(tcb->dir_name, (char *) fn,  K::strlen((char*)fn));
-    // unsigned i;
-    // for (i = 0; K::strlen((char*)fn); i++) {
-    //     tcb->dir_name[i] = fn[i];
-    // }
-    Debug::printf("here, %s, %d\n", (char*)fn, K::strlen((char*)fn));
-    tcb->dir_name[K::strlen((char*)fn)] = '\0';
+    // bzero(tcb->dir_name, 10);
+    int len = getcwd(tcb->dir_name);
 
-    Debug::printf("new directory name: %s\n", tcb->dir_name);
+    if (tcb->dir_inode != current()->fs->root) {
+        tcb->dir_name[len] = '/';
+        len++;
+    }
+
+    memcpy(tcb->dir_name + len, (char *) fn,  K::strlen((char*)fn));
+    tcb->dir_name[K::strlen((char*)fn) +1] = '\0';
+
+
+
+    // Debug::printf("new directory name: %s\n", tcb->dir_name);
 
     return fd;
 }
@@ -625,17 +651,13 @@ int shell_theme(int theme) {
 
 int touch(const char* fn) {
     TCB *me = current();
-    bool res = me->fs->createNode(me->fs->root, (char *) fn, ENTRY_FILE_TYPE);
+    bool res;
+    if (fn[0] == '/') {
+        res = me->fs->createNode(me->fs->root, (char *) fn, ENTRY_FILE_TYPE);
+    } else {
+        res = me->fs->createNode(me->dir_inode, (char *) fn, ENTRY_FILE_TYPE);
+    }
     return res ? 1 : -1;
-}
-
-int getcwd(char* buff) {
-    TCB *me = current();
-    memcpy(buff, me->dir_name, K::strlen(me->dir_name));
-    // K::strcpy(buff, me->dir_name);
-    buff[K::strlen(me->dir_name)] = '\0';
-    Debug::printf("%s, %s\n", me->dir_name, buff);
-    return K::strlen(me->dir_name);
 }
 
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
@@ -704,8 +726,7 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return readShellLine((char *) user_stack[1]);
 
         case 20:
-            return removeStructure(user_stack[1]);
-
+            return removeStructure(user_stack[1], user_stack[2]);
         case 21:
             return getcwd((char*) user_stack[1]);
     }

@@ -1,8 +1,12 @@
 #include "libc.h"
 
+int getcwd(char* buff);
+
 int main(int argc, char** argv) {
     
-    int fd = opendir("/");
+    char *buff = (char *) 0x8000c000;
+    getcwd(buff);
+    int fd = opendir(buff);
     // printf("file index: %d\n", fd);
 
     char *test_buff = (char *) 0x80008000;

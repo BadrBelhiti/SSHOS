@@ -15,22 +15,36 @@ int main(int argc, char** argv) {
     const char* name = argv[1];
     char* abs = (char *) 0x8000a000;
 
-    if (name[0] == '/') {
-        abs = (char*) name;
+    abs = (char*) name;
 
-    } else {
-        int len = getcwd(abs);
-        int byte = len;
-        int i = 0;
-        while (name[byte-len] != '\0') {
-            abs[byte] = name[i];
-            i++;
-            byte++;
-        }
-    }
+    // if (name[0] == '/') {
+    //     abs = (char*) name;
+    //     printf("absolute: %s\n", abs);
+
+    // } else {
+    //     int len = getcwd(abs);
+
+    //     printf("relative to %s\n", abs);
+
+    //     abs[len] = '/';
+
+    //     int byte = len+1;
+    //     int i = 0;
+    //     while (name[byte-len+1] != '\0') {
+    //         abs[byte] = name[i];
+    //         i++;
+    //         byte++;
+    //     }
+    // }
 
     // pass in the absolute path
-    chdir((const char*) abs);
+    // printf("passing in %s\n", abs);
+    int fd = chdir((const char*) abs);
+
+    if (fd == -1) {
+        printf("Directory does not exist\n");
+        return -1;
+    }
 
     return 0;
 }

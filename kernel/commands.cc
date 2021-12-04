@@ -88,6 +88,8 @@ bool CommandRunner::execute(char *cmd) {
 
     current()->dir_inode = commandProcess->dir_inode;
     memcpy(current()->dir_name, commandProcess->dir_name, K::strlen(commandProcess->dir_name));
+    current()->dir_name[K::strlen(commandProcess->dir_name)] = '\0';
+    // Debug::printf("in shell: %s\n", current()->dir_name);
 
     return true;
 }

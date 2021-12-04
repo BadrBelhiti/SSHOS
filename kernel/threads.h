@@ -257,7 +257,8 @@ gheith::TCB *shellProgram(gheith::TCB *parent, uint32_t* pd, uint32_t id, T work
     tcb->fs = parent->fs;
     tcb->dir_inode = parent->dir_inode;
     memcpy(tcb->dir_name, parent->dir_name, K::strlen(parent->dir_name));
-    Debug::printf("in shell thing %s, %s\n",tcb->dir_name, parent->dir_name );
+    tcb->dir_name[K::strlen(parent->dir_name)] = '\0';
+    // Debug::printf("in shell thing %s, %s\n",tcb->dir_name, parent->dir_name );
     
     tcb->shell = parent->shell;
 
