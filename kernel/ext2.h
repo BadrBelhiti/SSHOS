@@ -221,7 +221,7 @@ public:
         }
 
         // update file size
-        uint32_t addedBytes = (fileOffset + bytesToWrite) - inode->sizeInBytes;
+        int addedBytes = (fileOffset + bytesToWrite) - inode->sizeInBytes;
         if (addedBytes > 0) {
             inode->sizeInBytes += addedBytes;
         }
@@ -236,6 +236,7 @@ public:
         read_all(0, inode->sizeInBytes, buffer);
 
         uint32_t curByte = 0;
+
         while (curByte < inode->sizeInBytes) {
             uint32_t inodeNumber = *((uint32_t *) buffer);
             uint32_t entrySize = *((uint16_t *) (buffer + 4));
@@ -266,22 +267,25 @@ public:
 
     // only works for direct blocks currently
     void deleteNode(Shared<Node> parentDirectory) {  
-        // if (is_dir()) {
-        //     uint32_t curByte = 0;
-        //     while (curByte < size_in_bytes()) {
-        //         uint32_t inodeNumber;
-        //         read(curByte, inodeNumber);
-        //         if (inodeNumber != 0) {
-        //             Shared<Node> childNode = fileSystem->get_node(inodeNumber);
-        //             childNode->deleteNode(Shared<Node>{this});
-        //             Debug::printf("deleting node: %d\n", inodeNumber);
-        //         }
-        //         uint32_t entrySize;
-        //         read(curByte + 4, entrySize);
+        if (is_dir()) {
+            uint32_t curByte = 0;
+            Debug::printf("size in bytes: %d\n", size_in_bytes());
+            while (curByte < size_in_bytes()) {
+                uint32_t inodeNumber;
+                read(curByte, inodeNumber);
+                // don't delete dummy entries or . and .. entries
+                if (inodeNumber != 0 && inodeNumber != number) {
+                    Shared<Node> childNode = fileSystem->get_node(inodeNumber);
+                    childNode->deleteNode(Shared<Node>{this});
+                    Debug::printf("deleting node: %d\n", inodeNumber);
+                }
+                uint32_t entrySize;
+                read(curByte + 4, entrySize);
         
-        //         curByte += entrySize;
-        //     }
-        // }
+                curByte += entrySize;
+                break;
+            }
+        }
 
         // delete all data blocks associated with inode
         if (!(is_symlink() && inode->sizeInBytes < 60)) {
