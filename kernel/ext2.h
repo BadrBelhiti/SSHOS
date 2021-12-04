@@ -272,6 +272,7 @@ public:
             }
             part[i] = 0;
             auto number = current->find(part);
+            
             if (number == 0) {
                 current = Shared<Node>{};
                 goto done;

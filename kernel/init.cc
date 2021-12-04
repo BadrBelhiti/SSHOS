@@ -106,6 +106,9 @@ extern "C" void kernelInit(void) {
         /* initialize VMM */
         VMM::global_init();
 
+        /* Initialize keyboard */
+        Keyboard::init();
+
         /* initialize system calls */
         SYS::init();
 
@@ -140,7 +143,6 @@ extern "C" void kernelInit(void) {
     }
 
     VMM::per_core_init();
-    Keyboard::init();
 
     // Initialize the PIT
     Pit::init();

@@ -13,6 +13,7 @@
 #include "future.h"
 #include "libk.h"
 #include "elf.h"
+#include "keyboard.h"
 
 #define MAX_SEMAPHORES 10
 
@@ -494,6 +495,18 @@ int shell_theme(int theme) {
         me->shell->set_theme(WHITE_ON_BLACK);
     } else {
         me->shell->set_theme(WHITE_ON_BLUE);
+    }
+
+    return 0;
+}
+
+int read_line(char *buffer) {
+    uint32_t index = 0;
+    char curr_key = get_key();
+
+    while (curr_key != '\10') {
+        buffer[index++] = curr_key;
+        curr_key = get_key();
     }
 
     return 0;

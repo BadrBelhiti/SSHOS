@@ -6,6 +6,12 @@
 
 using namespace gheith;
 
+uint32_t cpuReadIoApic(void *ioapicaddr, uint32_t reg) {
+   uint32_t volatile *ioapic = (uint32_t volatile *)ioapicaddr;
+   ioapic[0] = (reg & 0xff);
+   return ioapic[4];
+}
+
 void kernelMain(void) {
     // Create shell
     Shell shell{false};
@@ -22,7 +28,12 @@ void kernelMain(void) {
     me->shell = &shell;
 
     // Init network driver
-    Network network{};
+    Network::init();
+
+    // Print out IOAPIC to debug
+    for (uint32_t i = 0; i < 100; i++) {
+        Debug::printf("0x%x ", cpuReadIoApic((void*) kConfig.ioAPIC, i));
+    }
 
     // Start shell
     shell.start();

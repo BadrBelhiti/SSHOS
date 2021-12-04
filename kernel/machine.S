@@ -51,8 +51,21 @@ wrmsr:
     wrmsr
     ret
 
+    .global network_int_
+network_int_:
+    pusha
+    .extern network_int
+    call network_int
+    popa
+    iret
+
+
     .global spuriousHandler_
 spuriousHandler_:
+    push $10
+    .extern debugSwitch
+    call debugSwitch
+    pop %eax
     iret
 
     .extern apitHandler
