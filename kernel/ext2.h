@@ -266,22 +266,22 @@ public:
 
     // only works for direct blocks currently
     void deleteNode(Shared<Node> parentDirectory) {  
-        if (is_dir()) {
-            uint32_t curByte = 0;
-            while (curByte < size_in_bytes()) {
-                uint32_t inodeNumber;
-                read(curByte, inodeNumber);
-                if (inodeNumber != 0) {
-                    Shared<Node> childNode = fileSystem->get_node(inodeNumber);
-                    childNode->deleteNode(Shared<Node>{this});
-                    Debug::printf("deleting node: %d\n", inodeNumber);
-                }
-                uint32_t entrySize;
-                read(curByte + 4, entrySize);
+        // if (is_dir()) {
+        //     uint32_t curByte = 0;
+        //     while (curByte < size_in_bytes()) {
+        //         uint32_t inodeNumber;
+        //         read(curByte, inodeNumber);
+        //         if (inodeNumber != 0) {
+        //             Shared<Node> childNode = fileSystem->get_node(inodeNumber);
+        //             childNode->deleteNode(Shared<Node>{this});
+        //             Debug::printf("deleting node: %d\n", inodeNumber);
+        //         }
+        //         uint32_t entrySize;
+        //         read(curByte + 4, entrySize);
         
-                curByte += entrySize;
-            }
-        }
+        //         curByte += entrySize;
+        //     }
+        // }
 
         // delete all data blocks associated with inode
         if (!(is_symlink() && inode->sizeInBytes < 60)) {
