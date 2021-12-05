@@ -1,3 +1,4 @@
+
 #ifndef _SYS_H_
 #define _SYS_H_
 
@@ -16,9 +17,12 @@ typedef unsigned int size_t;
 /* never returns, rc is the exit code */
 extern void exit(int rc);
 
+// read line from shell
+int readShellLine(char *buf);
+
 /* open */
 /* opens a file, returns file descriptor, flags is ignored */
-extern int open(const char* fn, int flags);
+extern int open(const char* fn);
 
 /* len */
 /* returns number of bytes in the file, negative indicates error or a console device */
@@ -77,5 +81,13 @@ extern int fork();
 /* arg0 is the name of the program by convention */
 /* a nullptr indicates end of arguments */
 extern int execl(const char* path, const char* arg0, ...);
+
+extern int opendir(const char* fn);
+
+extern int readdir(int fd, char* buff_start, uint32_t max_size);
+
+extern int changedir(const char* fn);
+
+extern int removeStructure(int fd, int removeFromRoot);
 
 #endif

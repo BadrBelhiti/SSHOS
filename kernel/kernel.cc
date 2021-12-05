@@ -19,6 +19,11 @@ void kernelMain(void) {
 
     TCB *me = current();
     me->fs = fs;
+    
+    me->dir_inode = fs->root;
+    // me->dir_name[0] = '/';
+    // me->dir_name[1] = '\0';
+
     me->shell = &shell;
 
     // Init network driver

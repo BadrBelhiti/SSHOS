@@ -99,6 +99,18 @@ public:
 
     void freeInode(uint32_t inodeNumber);
 
+    Shared<Node> get_node(uint32_t number);
+
+    uint32_t getInodeTableOffset(uint32_t inodeNumber) {
+        uint32_t blockGroup = (inodeNumber - 1) / superBlock->inodesPerGroup;
+        uint32_t inodeIndex = (inodeNumber - 1) % superBlock->inodesPerGroup;
+
+        uint32_t byteInodeTableAddress = blockGroupTable[blockGroup].inodeTableAddress * get_block_size();
+        uint32_t inodeOffset = byteInodeTableAddress + inodeIndex * 128;
+
+        return inodeOffset;
+    }
+
     void write_all(uint32_t diskOffset, char *bufferToWrite, uint32_t bytesToWrite) {
         // write to blocks
         int remainingBytes = bytesToWrite;
@@ -151,6 +163,8 @@ public:
     }
 
     virtual ~Node() {}
+
+    Shared<Node> get_node(uint32_t number);
 
     // How many bytes does this i-node represent
     //    - for a file, the size of the file
@@ -207,8 +221,13 @@ public:
         }
 
         // update file size
-        uint32_t addedBytes = (fileOffset + bytesToWrite) - inode->sizeInBytes;
-        inode->sizeInBytes += addedBytes;
+        int addedBytes = (fileOffset + bytesToWrite) - inode->sizeInBytes;
+        if (addedBytes > 0) {
+            inode->sizeInBytes += addedBytes;
+        }
+        
+        // update inode table with new size and other info
+        fileSystem->write_all(fileSystem->getInodeTableOffset(number), (char *) inode, fileSystem->get_inode_size());
     }
 
     void deleteFromDirectory(uint32_t inodeToDelete) {
@@ -217,6 +236,7 @@ public:
         read_all(0, inode->sizeInBytes, buffer);
 
         uint32_t curByte = 0;
+
         while (curByte < inode->sizeInBytes) {
             uint32_t inodeNumber = *((uint32_t *) buffer);
             uint32_t entrySize = *((uint16_t *) (buffer + 4));
@@ -246,8 +266,29 @@ public:
     }
 
     // only works for direct blocks currently
-    void deleteNode(Shared<Node> parentDirectory) {
-        if (is_file() || (is_symlink() && inode->sizeInBytes > 60)) {
+    void deleteNode(Shared<Node> parentDirectory) {  
+        if (is_dir()) {
+            char initBuffer[inode->sizeInBytes];
+            char *buffer = initBuffer;
+            read_all(0, inode->sizeInBytes, buffer);
+            
+            uint32_t curByte = 0;
+            while (curByte < size_in_bytes()) {
+                uint32_t inodeNumber = *((uint32_t *) buffer);
+                // don't delete dummy entries or . and .. entries
+                if (inodeNumber != 0 && inodeNumber != number && inodeNumber != parentDirectory->number) {
+                    Shared<Node> childNode = fileSystem->get_node(inodeNumber);
+                    childNode->deleteNode(Shared<Node>{this});
+                }
+                uint32_t entrySize = *((uint16_t *) (buffer + 4));
+        
+                curByte += entrySize;
+                buffer += entrySize;
+            }
+        }
+
+        // delete all data blocks associated with inode
+        if (!(is_symlink() && inode->sizeInBytes < 60)) {
             for (uint32_t i = 0; i < 15; i++) {
                 // invalid address. no more blocks to free
                 if (inode->blockAddresses[i] == 0) {
@@ -256,8 +297,6 @@ public:
                     fileSystem->freeBlock(inode->blockAddresses[i]);
                 }
             }
-        } else if (is_dir()) {
-            Debug::panic("Haven't handled deletion of directories yet\n");
         }
 
         // free my own inode self
@@ -283,6 +322,30 @@ public:
     // true if this node is a symbolic link
     bool is_symlink() {
         return type == 0xA000;
+    }
+
+    template <typename Work>
+    void entries(Work work) {
+        ASSERT(is_dir());
+        uint32_t offset = 0;
+
+        while (offset < inode->sizeInBytes) {
+            uint32_t inode;
+            read(offset,inode);
+            uint16_t total_size;
+            read(offset+4,total_size);
+            if (inode != 0) {
+                uint8_t name_length;
+                read(offset+6,name_length);
+                auto name = new char[name_length+1];
+                name[name_length] = 0;
+                auto cnt = read_all(offset+8,name_length,name);
+                ASSERT(cnt == name_length);
+                work(inode,name);
+                delete[] name;
+            }
+            offset += total_size;
+        }
     }
 
     // If this node is a symbolic link, fill the buffer with
@@ -314,7 +377,6 @@ public:
     // Panics if not a directory
     uint32_t entry_count() {
         uint32_t entryCount = 0;
-        // char *buffer = new char[inode->sizeInBytes];
         char *buffer = new char[inode->sizeInBytes];
         char *initBuffer = buffer;
         read_all(0, inode->sizeInBytes, buffer);
@@ -333,6 +395,9 @@ public:
 
         delete[] initBuffer;
     }
+
+    char *get_entry_names(char* buff_start, uint32_t max_size);
+    uint32_t find(const char* name);
 
     friend class Shared<Node>;
 };
