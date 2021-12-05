@@ -613,9 +613,6 @@ int chdir(const char* fn) {
     Shared<OpenFile> *open_files = tcb->open_files;
     Shared<Node> node = open_files[fd]->vnode;
 
-    tcb->dir_inode = node;
-    bzero(tcb->dir_name, K::strlen((char*)fn));
-    // bzero(tcb->dir_name, 10);
     int len = getcwd(tcb->dir_name);
 
     if (tcb->dir_inode != current()->fs->root) {
@@ -623,12 +620,11 @@ int chdir(const char* fn) {
         len++;
     }
 
+    Debug::printf("len: %d\n", len);
+
     memcpy(tcb->dir_name + len, (char *) fn,  K::strlen((char*)fn));
-    tcb->dir_name[K::strlen((char*)fn) +1] = '\0';
-
-
-
-    // Debug::printf("new directory name: %s\n", tcb->dir_name);
+    tcb->dir_name[K::strlen((char *) fn) + len] = '\0';
+    tcb->dir_inode = node;
 
     return fd;
 }
@@ -649,23 +645,27 @@ int shell_theme(int theme) {
     return 0;
 }
 
-int touch(const char* fn) {
+int touch(char* fn) {
     TCB *me = current();
-    bool res;
-    Debug::printf("touch fn: %s\n", fn);
-    if (fn[0] == '/') {
-        res = me->fs->createNode(me->fs->root, (char *) fn, ENTRY_FILE_TYPE);
-    } else {
-        uint32_t pwd_len = K::strlen(me->dir_name);
-        uint32_t relative_len = K::strlen(fn);
-
-        // Add 1 for separating slash
-        char absolute_path[pwd_len + 1 + relative_len]; 
-
-        // memcpy(pwd, me->dir_name, pwd_len);
-
-        res = me->fs->createNode(me->dir_inode, absolute_path, ENTRY_FILE_TYPE);
+    // separate path of directory we're inserting new file in and the new file
+    int index = K::strlen((char *) fn) - 1;
+    while (index >= 0 && fn[index] != '/') {
+        index--;
     }
+
+    Shared<Node> directoryNode = me->dir_inode; // default case: touch "hi"
+    if (fn[0] == '/') {
+        fn[index] = 0;
+        directoryNode = me->fs->find(me->fs->root, fn);
+    }
+    else if (index >= 0) {
+        fn[index] = 0;
+        // find directory to insert file in
+        directoryNode = me->fs->find(me->dir_inode, fn);
+    }
+        
+    // create file in directory
+    bool res = me->fs->createNode(directoryNode, fn + index + 1, ENTRY_FILE_TYPE);
     return res ? 1 : -1;
 }
 
@@ -729,7 +729,7 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return chdir((const char*) user_stack[1]);
 
         case 18:
-            return touch((const char*) user_stack[1]);
+            return touch((char*) user_stack[1]);
 
         case 19:
             return readShellLine((char *) user_stack[1]);
