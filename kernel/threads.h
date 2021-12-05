@@ -76,6 +76,9 @@ namespace gheith {
         // CurrentDir *curr_dir;
         Shared<Node> dir_inode;
 
+        // Used for redirecting stdout. May be null
+        Shared<Node> redirection_output;
+
         char *dir_name;
 
         Atomic<uint32_t> ref_count;
@@ -256,6 +259,7 @@ gheith::TCB *shellProgram(gheith::TCB *parent, uint32_t* pd, uint32_t id, T work
     tcb->pid = id;
     tcb->fs = parent->fs;
     tcb->dir_inode = parent->dir_inode;
+    tcb->redirection_output = parent->redirection_output;
     memcpy(tcb->dir_name, parent->dir_name, K::strlen(parent->dir_name));
     tcb->dir_name[K::strlen(parent->dir_name)] = '\0';
     // Debug::printf("in shell thing %s, %s\n",tcb->dir_name, parent->dir_name );

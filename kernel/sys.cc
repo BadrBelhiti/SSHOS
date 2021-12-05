@@ -346,7 +346,6 @@ int close(int id) {
 }
 
 int shutdown(void) {
-    while(true);
     Debug::shutdown();
     return 0;
 }

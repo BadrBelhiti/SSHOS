@@ -36,9 +36,15 @@ class OpenFile {
                 return -1;
             }
 
+            auto me = gheith::current();
+
             if (consoleDevice && writeable) { // write to shell
-                for (uint32_t i = 0; i < n; i++) {
-                    gheith::current()->shell->printf("%c", ((char*) buffer)[i]);
+                if (me->redirection_output == nullptr) {
+                    for (uint32_t i = 0; i < n; i++) {
+                        me->shell->printf("%c", ((char*) buffer)[i]);
+                    }
+                } else {
+                    me->redirection_output->write_all(0, (char*) buffer, n);
                 }
             } else { // write to file
                 vnode->write_all(0, (char *) buffer, n);
