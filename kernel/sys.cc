@@ -149,9 +149,6 @@ int readShellLine(char *buf) {
         curKey = get_key();
     }
 
-    // int numBytes = me->shell->cursor - startingCursor;
-    // ::memcpy(buf, me->shell->buffer, numBytes);
-
     // return number of bytes read
     return (int) index;
 }
@@ -715,20 +712,24 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
         // readdir(int fd)
         case 16:
             return readdir(user_stack[1], (char*) user_stack[2], user_stack[3]);
-
+        // chdir(char *fn)
         case 17:
             return chdir((const char*) user_stack[1]);
-
+        // touch(char *fn)
         case 18:
             return touch((const char*) user_stack[1]);
-
+        // readShellLine(char *buf)
         case 19:
             return readShellLine((char *) user_stack[1]);
-
+        // removeStructure()
         case 20:
             return removeStructure(user_stack[1], user_stack[2]);
+        // getcwd(char *buf)
         case 21:
             return getcwd((char*) user_stack[1]);
+        // mkdir(char *fn)
+        case 22:
+            return mkdir((char *) user_stack[1]);
     }
 
     return 0;
