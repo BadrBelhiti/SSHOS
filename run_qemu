@@ -1,5 +1,10 @@
 set -e
 
+CWD=$(pwd)
+echo $CWD
+
+# make clean -f $CWD/t0.dir/usr/lib/Makefile && cp $CWD/t0.dir/usr/lib/!\(*.*\) $CWD/t0.dir/usr/bin/ && rm -f $CWD/t0.dir/usr/bin/Makefile
+
 UTCS_OPT=-O3 make clean the_kernel $1.data
 
 time `make qemu_cmd` `make qemu_config_flags` \

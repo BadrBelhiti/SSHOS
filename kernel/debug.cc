@@ -64,7 +64,7 @@ void Debug::vpanic(const char* fmt, va_list ap) {
 void Debug::panic(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    vpanic(fmt,ap);
+    vprintf(fmt,ap);
     va_end(ap);
 }
 

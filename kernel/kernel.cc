@@ -27,7 +27,7 @@ void kernelMain(void) {
     me->shell = &shell;
 
     // Init network driver
-    Network network{};
+    // Network network{};
 
     // Start shell
     shell.start();

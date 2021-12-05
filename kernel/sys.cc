@@ -498,9 +498,9 @@ int removeStructure(int fd, bool removeFromRoot) {
     }
 
     if (removeFromRoot) {
-        open_file->vnode->deleteNode(current()->fs->root);
+        return open_file->vnode->deleteNode(current()->fs->root);
     } else {
-        open_file->vnode->deleteNode(current()->dir_inode);
+        return open_file->vnode->deleteNode(current()->dir_inode);
     }
     
     return 1;
@@ -652,10 +652,19 @@ int shell_theme(int theme) {
 int touch(const char* fn) {
     TCB *me = current();
     bool res;
+    Debug::printf("touch fn: %s\n", fn);
     if (fn[0] == '/') {
         res = me->fs->createNode(me->fs->root, (char *) fn, ENTRY_FILE_TYPE);
     } else {
-        res = me->fs->createNode(me->dir_inode, (char *) fn, ENTRY_FILE_TYPE);
+        uint32_t pwd_len = K::strlen(me->dir_name);
+        uint32_t relative_len = K::strlen(fn);
+
+        // Add 1 for separating slash
+        char absolute_path[pwd_len + 1 + relative_len]; 
+
+        // memcpy(pwd, me->dir_name, pwd_len);
+
+        res = me->fs->createNode(me->dir_inode, absolute_path, ENTRY_FILE_TYPE);
     }
     return res ? 1 : -1;
 }

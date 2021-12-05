@@ -83,8 +83,12 @@ void Shell::printf(const char* fmt, ...) {
 
 void Shell::print_prefix() {
     LockGuardP g{the_lock};
-    memcpy(&buffer[cursor], "root:/", 6);
-    cursor += 6;
+    auto me = gheith::current();
+    uint32_t dir_length = K::strlen(me->dir_name);
+    memcpy(&buffer[cursor], "root:", 5);
+    memcpy(&buffer[cursor + 5], me->dir_name, dir_length);
+    memcpy(&buffer[cursor + 5 + dir_length], "$ ", 2);
+    cursor += 5 + dir_length + 2;
     curr_cmd_start = cursor;
 }
 

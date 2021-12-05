@@ -266,11 +266,20 @@ public:
     }
 
     // only works for direct blocks currently
-    void deleteNode(Shared<Node> parentDirectory) {  
+    int deleteNode(Shared<Node> parentDirectory) {
+        Debug::printf("size in bytes: %d?\n", size_in_bytes());
+        Debug::printf("inode number: %d\n", number);
+        Debug::printf("parent directory number: %d\n", parentDirectory->number);
+
+        if (number == 2) {
+            return -2;
+        }
+
         if (is_dir()) {
             char initBuffer[inode->sizeInBytes];
             char *buffer = initBuffer;
             read_all(0, inode->sizeInBytes, buffer);
+            Debug::printf("parent directory number: %d\n", parentDirectory->number);
             
             uint32_t curByte = 0;
             while (curByte < size_in_bytes()) {
@@ -278,6 +287,8 @@ public:
                 // don't delete dummy entries or . and .. entries
                 if (inodeNumber != 0 && inodeNumber != number && inodeNumber != parentDirectory->number) {
                     Shared<Node> childNode = fileSystem->get_node(inodeNumber);
+                    Debug::printf("about to delete inode number: %d\n", inodeNumber);
+                    Debug::printf("offset: %d\n", curByte);
                     childNode->deleteNode(Shared<Node>{this});
                 }
                 uint32_t entrySize = *((uint16_t *) (buffer + 4));
@@ -286,6 +297,8 @@ public:
                 buffer += entrySize;
             }
         }
+
+        Debug::printf("Well I made it here\n");
 
         // delete all data blocks associated with inode
         if (!(is_symlink() && inode->sizeInBytes < 60)) {
@@ -302,6 +315,8 @@ public:
         // free my own inode self
         parentDirectory->deleteFromDirectory(number);
         fileSystem->freeInode(number);
+
+        return 0;
     }
 
     // returns the ext2 type of the node
