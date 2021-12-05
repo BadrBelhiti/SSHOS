@@ -22,6 +22,7 @@ void Debug::vprintf(const char* fmt, va_list ap) {
     if (shell) {
         lock.lock();
         K::vsnprintf(*shell,1000,fmt,ap);
+        shell->refresh();
         lock.unlock();
     }
 }

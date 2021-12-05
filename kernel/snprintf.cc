@@ -665,7 +665,6 @@ static void dopr_outch (Shell& shell, long *currlen, long maxlen, char c)
 {
   (*currlen) += 1;
   shell.handle_normal(c);
-  shell.refresh();
 }
 
 void K::vsnprintf (Shell& shell, long maxlen, const char *fmt, va_list args)

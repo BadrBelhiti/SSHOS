@@ -109,7 +109,7 @@ bool Shell::handle_backspace() {
 
 bool Shell::handle_return() {
     
-
+    leftShifts = 0;
     // Go to end of line in the case cursor has been moved
     while (buffer[cursor] != 0) {
         cursor++;
@@ -145,7 +145,6 @@ bool Shell::handle_return() {
 
     // TODO: Print prefix based on current working directory and current user
     print_prefix();
-    leftShifts = 0;
     currCommand = command_count;
     return true;
 }

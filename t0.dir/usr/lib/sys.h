@@ -88,6 +88,6 @@ extern int readdir(int fd, char* buff_start, uint32_t max_size);
 
 extern int changedir(const char* fn);
 
-extern int removeStructure(int fd, int removeFromRoot);
+extern int removeStructure(char *fn);
 
 #endif

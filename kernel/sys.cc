@@ -487,23 +487,29 @@ int len(int fd) {
     return open_file->vnode->size_in_bytes();;
 }
 
-int removeStructure(int fd, bool removeFromRoot) {
-    if (fd >= 10 || fd < 0) {
-        return -1;
+int removeStructure(char *fn) {
+    TCB *me = current();
+    // separate path of directory we're inserting new file in and the new file
+    int index = K::strlen((char *) fn) - 1;
+    while (index >= 0 && fn[index] != '/') {
+        index--;
     }
 
-    Shared<OpenFile> open_file = current()->open_files[fd];
-    if (open_file == nullptr) {
-        return -1;
+    Shared<Node> parentNode = me->dir_inode; // default case: touch "hi"
+    if (fn[0] == '/') {
+        fn[index] = 0;
+        parentNode = me->fs->find(me->fs->root, fn);
     }
-
-    if (removeFromRoot) {
-        return open_file->vnode->deleteNode(current()->fs->root);
-    } else {
-        return open_file->vnode->deleteNode(current()->dir_inode);
+    else if (index >= 0) {
+        fn[index] = 0;
+        // find directory to insert file in
+        parentNode = me->fs->find(me->dir_inode, fn);
     }
-    
-    return 1;
+        
+    // create file in directory
+    Shared<Node> nodeToDelete = me->fs->find(parentNode, fn + index + 1);
+    bool res = nodeToDelete->deleteNode(parentNode);
+    return res ? 1 : -1;
 }
 
 int read(int fd, void* buffer, ssize_t n) {
@@ -735,7 +741,7 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return readShellLine((char *) user_stack[1]);
 
         case 20:
-            return removeStructure(user_stack[1], user_stack[2]);
+            return removeStructure((char *) user_stack[1]);
         case 21:
             return getcwd((char*) user_stack[1]);
     }
