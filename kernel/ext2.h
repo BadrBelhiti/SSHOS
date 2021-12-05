@@ -268,22 +268,22 @@ public:
     // only works for direct blocks currently
     void deleteNode(Shared<Node> parentDirectory) {  
         if (is_dir()) {
+            char initBuffer[inode->sizeInBytes];
+            char *buffer = initBuffer;
+            read_all(0, inode->sizeInBytes, buffer);
+            
             uint32_t curByte = 0;
-            Debug::printf("size in bytes: %d\n", size_in_bytes());
             while (curByte < size_in_bytes()) {
-                uint32_t inodeNumber;
-                read(curByte, inodeNumber);
+                uint32_t inodeNumber = *((uint32_t *) buffer);
                 // don't delete dummy entries or . and .. entries
-                if (inodeNumber != 0 && inodeNumber != number) {
+                if (inodeNumber != 0 && inodeNumber != number && inodeNumber != parentDirectory->number) {
                     Shared<Node> childNode = fileSystem->get_node(inodeNumber);
                     childNode->deleteNode(Shared<Node>{this});
-                    Debug::printf("deleting node: %d\n", inodeNumber);
                 }
-                uint32_t entrySize;
-                read(curByte + 4, entrySize);
+                uint32_t entrySize = *((uint16_t *) (buffer + 4));
         
                 curByte += entrySize;
-                break;
+                buffer += entrySize;
             }
         }
 
