@@ -675,6 +675,18 @@ int touch(char* fn) {
     return res ? 1 : -1;
 }
 
+int getcmd(char* buff, uint32_t line) {
+    // copy the current command at line into the buffer
+    TCB *me = current();
+    if (line >= me->shell->command_count) {
+        return -1; // error since line needs to be within command count
+    }
+    char* cmd = me->shell->commands[line];
+    int size = (int)me->shell->commandSizes[line];
+    memcpy(buff, cmd, me->shell->commandSizes[line]);
+    return size;
+}
+
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
     uint32_t *user_stack = (uint32_t*) frame[3];
 
@@ -739,11 +751,13 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
 
         case 19:
             return readShellLine((char *) user_stack[1]);
-
         case 20:
             return removeStructure((char *) user_stack[1]);
         case 21:
             return getcwd((char*) user_stack[1]);
+        case 22:
+            return getcmd((char*) user_stack[1], (uint32_t) user_stack[2]);
+        
     }
 
     return 0;
