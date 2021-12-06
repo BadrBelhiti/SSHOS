@@ -183,6 +183,7 @@ copy:
 	int $48
 	ret
 
+	.global mkdir
 mkdir:
 	mov $24,%eax
 	int $48
