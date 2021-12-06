@@ -22,6 +22,7 @@ void Debug::vprintf(const char* fmt, va_list ap) {
     if (shell) {
         lock.lock();
         K::vsnprintf(*shell,1000,fmt,ap);
+        shell->refresh();
         lock.unlock();
     }
 }
@@ -64,7 +65,7 @@ void Debug::vpanic(const char* fmt, va_list ap) {
 void Debug::panic(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    vpanic(fmt,ap);
+    vprintf(fmt,ap);
     va_end(ap);
 }
 

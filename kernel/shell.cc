@@ -83,8 +83,12 @@ void Shell::printf(const char* fmt, ...) {
 
 void Shell::print_prefix() {
     LockGuardP g{the_lock};
-    memcpy(&buffer[cursor], "root:/", 6);
-    cursor += 6;
+    auto me = gheith::current();
+    uint32_t dir_length = K::strlen(me->dir_name);
+    memcpy(&buffer[cursor], "root:", 5);
+    memcpy(&buffer[cursor + 5], me->dir_name, dir_length);
+    memcpy(&buffer[cursor + 5 + dir_length], "$ ", 2);
+    cursor += 5 + dir_length + 2;
     curr_cmd_start = cursor;
 }
 
@@ -105,7 +109,7 @@ bool Shell::handle_backspace() {
 
 bool Shell::handle_return() {
     
-
+    leftShifts = 0;
     // Go to end of line in the case cursor has been moved
     while (buffer[cursor] != 0) {
         cursor++;
@@ -126,14 +130,14 @@ bool Shell::handle_return() {
     memcpy(cmd, &buffer[curr_cmd_start], cmd_size);
 
     if (cmd_size != 0) {
+        commands[command_count] = cmd;
+        commandSizes[command_count] = cmd_size;
+        command_count++;
+
         bool successful = cmd_runner->execute(cmd);
         if (!successful) {
             // println((char*) "Command failed");
         }
-        
-        commands[command_count] = cmd;
-        commandSizes[command_count] = cmd_size;
-        command_count++;
     }
     else {
         delete[] cmd;
@@ -141,7 +145,6 @@ bool Shell::handle_return() {
 
     // TODO: Print prefix based on current working directory and current user
     print_prefix();
-    leftShifts = 0;
     currCommand = command_count;
     return true;
 }
@@ -184,7 +187,7 @@ bool Shell::handle_uarrow() {
     if (currCommand == 0) {
         return false;
     }
-    else if (currCommand == command_count) {
+    else {
         // temporarily store the current command being typed
         uint32_t cmd_size = cursor - curr_cmd_start;
         char *cmd = new char[cmd_size + 1];
@@ -211,6 +214,16 @@ bool Shell::handle_darrow() {
     // down arrow
     if (currCommand == command_count) {
         return false;
+    }
+    else {
+        // temporarily store the current command being typed
+        uint32_t cmd_size = cursor - curr_cmd_start;
+        char *cmd = new char[cmd_size + 1];
+        cmd[cmd_size] = 0;
+
+        memcpy(cmd, &buffer[curr_cmd_start], cmd_size);
+        commands[currCommand] = cmd;
+        commandSizes[currCommand] = cmd_size;
     }
 
     // retrieve next command, copy it over and zero out extra characters in buffer

@@ -169,6 +169,13 @@ getcwd:
 	int $48
 	ret
 
+	# int getcmd(char* buff)
+	.global getcmd
+getcmd:
+	mov $22,%eax
+	int $48
+	ret
+
 	# int copy(char* from, char* to)
 	.global copy
 copy:
