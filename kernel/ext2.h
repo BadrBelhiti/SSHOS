@@ -222,7 +222,13 @@ public:
 
         // update file size
         int addedBytes = (fileOffset + bytesToWrite) - inode->sizeInBytes;
+<<<<<<< HEAD
         inode->sizeInBytes += addedBytes;
+=======
+        if (addedBytes > 0) {
+            inode->sizeInBytes += addedBytes;
+        }
+>>>>>>> 7c629f0452b1ff7c95bbefbe53d059fdaec1c672
         
         // update inode table with new size and other info
         fileSystem->write_all(fileSystem->getInodeTableOffset(number), (char *) inode, fileSystem->get_inode_size());
@@ -234,6 +240,7 @@ public:
         read_all(0, inode->sizeInBytes, buffer);
 
         uint32_t curByte = 0;
+
         while (curByte < inode->sizeInBytes) {
             uint32_t inodeNumber = *((uint32_t *) buffer);
             uint32_t entrySize = *((uint16_t *) (buffer + 4));
@@ -263,23 +270,30 @@ public:
     }
 
     // only works for direct blocks currently
-    void deleteNode(Shared<Node> parentDirectory) {  
-        // if (is_dir()) {
-        //     uint32_t curByte = 0;
-        //     while (curByte < size_in_bytes()) {
-        //         uint32_t inodeNumber;
-        //         read(curByte, inodeNumber);
-        //         if (inodeNumber != 0) {
-        //             Shared<Node> childNode = fileSystem->get_node(inodeNumber);
-        //             childNode->deleteNode(Shared<Node>{this});
-        //             Debug::printf("deleting node: %d\n", inodeNumber);
-        //         }
-        //         uint32_t entrySize;
-        //         read(curByte + 4, entrySize);
+    int deleteNode(Shared<Node> parentDirectory) {
+        if (number == 2) {
+            return -2;
+        }
+
+        if (is_dir()) {
+            char initBuffer[inode->sizeInBytes];
+            char *buffer = initBuffer;
+            read_all(0, inode->sizeInBytes, buffer);
+            
+            uint32_t curByte = 0;
+            while (curByte < size_in_bytes()) {
+                uint32_t inodeNumber = *((uint32_t *) buffer);
+                // don't delete dummy entries or . and .. entries
+                if (inodeNumber != 0 && inodeNumber != number && inodeNumber != parentDirectory->number) {
+                    Shared<Node> childNode = fileSystem->get_node(inodeNumber);
+                    childNode->deleteNode(Shared<Node>{this});
+                }
+                uint32_t entrySize = *((uint16_t *) (buffer + 4));
         
-        //         curByte += entrySize;
-        //     }
-        // }
+                curByte += entrySize;
+                buffer += entrySize;
+            }
+        }
 
         // delete all data blocks associated with inode
         if (!(is_symlink() && inode->sizeInBytes < 60)) {
@@ -296,6 +310,8 @@ public:
         // free my own inode self
         parentDirectory->deleteFromDirectory(number);
         fileSystem->freeInode(number);
+
+        return 1;
     }
 
     // returns the ext2 type of the node

@@ -32,11 +32,10 @@ class OpenFile {
         }
 
         int write(void *buffer, uint32_t n) {
+            auto me = gheith::current();
             if (!this->writeable) {
                 return -1;
             }
-
-            auto me = gheith::current();
 
             if (consoleDevice && writeable) { // write to shell
                 gheith::Redirection *redirect_data = me->redirection;
@@ -47,6 +46,7 @@ class OpenFile {
                 } else {
                     redirect_data->output_file->write_all(redirect_data->offset, (char*) buffer, n);
                 }
+                me->shell->refresh();
             } else { // write to file
                 vnode->write_all(0, (char *) buffer, n);
             }

@@ -5,13 +5,16 @@ int main(int argc, char** argv) {
         printf("Usage: rm <file name>\n");
         return -1;
     }
-    
+
     char *fileName = argv[1];
-    int fd = open(fileName);
-    if (fd < 0) {
-        printf("File %s doesn't exist\n", fileName);
+
+    if (streq(fileName, ".") || streq(fileName, "..")) {
+        printf("Can't delete . or ..");
         return -1;
     }
 
-    return removeStructure(fd, fileName[0] == '/');
+    int result = removeStructure(fileName);
+    if (result < 0) {
+        printf("Unable to delete file\n");
+    }
 }

@@ -664,8 +664,7 @@ static void fmtfp (Shell& shell, long *currlen, long maxlen,
 static void dopr_outch (Shell& shell, long *currlen, long maxlen, char c)
 {
   (*currlen) += 1;
-  bool refreshNeeded = shell.handle_normal(c);
-  if (refreshNeeded) shell.refresh();
+  shell.handle_normal(c);
 }
 
 void K::vsnprintf (Shell& shell, long maxlen, const char *fmt, va_list args)

@@ -1,4 +1,5 @@
-UTILS = color test touch atto cat rm cd pwd echo exit history
+UTILS = color test touch atto cat rm cd pwd
+
 CFLAGS = -std=c99 -m32 -nostdlib -g -O2 -Wall -Werror
 
 all : $(UTILS)
