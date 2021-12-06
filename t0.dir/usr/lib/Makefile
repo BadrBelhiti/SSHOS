@@ -1,4 +1,4 @@
-UTILS = color touch atto cat rm cd pwd history ls
+UTILS = color touch atto cat rm cd pwd history ls mkdir
 
 CFLAGS = -std=c99 -m32 -nostdlib -g -O2 -Wall -Werror
 

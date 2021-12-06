@@ -236,7 +236,6 @@ int fork(uint32_t *kernel_stack) {
         switchToUser(eip, user_stack, 0);
     });
 
-    // Debug::printf("Created child with pid %d\n", child_index + 10);
     return child_index + 10;
 }
 
@@ -279,7 +278,6 @@ int up(int s) {
 
 int down(int s) {
     TCB *me = current();
-    // Debug::printf("Down called by pid %d\n", me->pid);
     uint32_t index = s - 20;
 
     if (index < 0 || index >= MAX_SEMAPHORES) {
@@ -484,7 +482,7 @@ int len(int fd) {
         return -1;
     }
 
-    return open_file->vnode->size_in_bytes();;
+    return open_file->vnode->size_in_bytes();
 }
 
 int removeStructure(char *fn) {
@@ -495,7 +493,7 @@ int removeStructure(char *fn) {
         index--;
     }
 
-    Shared<Node> parentNode = me->dir_inode; // default case: touch "hi"
+    Shared<Node> parentNode = me->dir_inode; // default case: remove "hi"
     if (fn[0] == '/') {
         fn[index] = 0;
         parentNode = me->fs->find(me->fs->root, fn);
@@ -569,7 +567,8 @@ int opendir(const char* fn) {
     Shared<Node> vnode;
     // Find directory, same as findinng file
     if (fn[0] == '/') {
-        vnode = find_by_absolute(fn);
+        Debug::printf("fn: %s\n", fn);
+        vnode = current()->fs->find(current()->fs->root, fn);
     } else {
         vnode = current()->fs->find(current()->dir_inode, fn);
     }
@@ -591,8 +590,6 @@ int opendir(const char* fn) {
 int readdir(int fd, char* buff_start, uint32_t max_size) {
     Shared<OpenFile> *open_files = current()->open_files;
     Shared<Node> dir_node = open_files[fd]->vnode;
-    
-    bzero(buff_start, max_size);
     dir_node->get_entry_names(buff_start, max_size);
 
     return 1;
@@ -600,11 +597,8 @@ int readdir(int fd, char* buff_start, uint32_t max_size) {
 
 int getcwd(char* buff) {
     TCB *me = current();
-    // Debug::printf("in cwd: %s\n", me->dir_name);
     memcpy(buff, me->dir_name, K::strlen(me->dir_name));
-    // K::strcpy(buff, me->dir_name);
     buff[K::strlen(me->dir_name)] = '\0';
-    // Debug::printf("%s, %s\n", me->dir_name, buff);
     return K::strlen(me->dir_name);
 }
 
@@ -659,7 +653,6 @@ int chdir(char* fn) {
 
     // we need to add in null terminator
     tcb->dir_name[cwdIndex + 1] = 0;
-
     tcb->dir_inode = node;
     return fd;
 }
@@ -689,7 +682,6 @@ int makeStructure(char* fn, uint32_t structureType) {
     }
 
     Shared<Node> directoryNode = me->dir_inode; // default case: touch "hi"
-    Debug::printf("cur inode number: %d\n", directoryNode->number);
     if (fn[0] == '/') {
         fn[index] = 0;
         directoryNode = me->fs->find(me->fs->root, fn);
@@ -701,6 +693,8 @@ int makeStructure(char* fn, uint32_t structureType) {
         
     // create file in directory
     bool res = me->fs->createNode(directoryNode, fn + index + 1, structureType);
+
+    // directoryNode->get_entry_names(0, directoryNode->size_in_bytes());
     return res ? 1 : -1;
 }
 
@@ -789,6 +783,9 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
         
         case 22:
             return getcmd((char*) user_stack[1], (uint32_t) user_stack[2]);    
+        
+        case 23:
+            return makeStructure((char*) user_stack[1], ENTRY_DIRECTORY_TYPE);
     }
 
     return 0;

@@ -160,6 +160,11 @@ public:
         this->inode = (Inode *) inode;
         this->type = this->inode->typesAndPermissions & 0xF000;
         this->fileSystem = fileSystem;
+        
+        if (number == 2) {
+            Debug::printf("offset: %d\n", inodeOffset);
+            Debug::printf("In node constructor. number: %d, Actual file size: %d\n", number, this->inode->sizeInBytes);
+        }
     }
 
     virtual ~Node() {}

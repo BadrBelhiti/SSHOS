@@ -17,28 +17,7 @@ int main(int argc, char** argv) {
 
     abs = (char*) name;
 
-    // if (name[0] == '/') {
-    //     abs = (char*) name;
-    //     printf("absolute: %s\n", abs);
-
-    // } else {
-    //     int len = getcwd(abs);
-
-    //     printf("relative to %s\n", abs);
-
-    //     abs[len] = '/';
-
-    //     int byte = len+1;
-    //     int i = 0;
-    //     while (name[byte-len+1] != '\0') {
-    //         abs[byte] = name[i];
-    //         i++;
-    //         byte++;
-    //     }
-    // }
-
     // pass in the absolute path
-    // printf("passing in %s\n", abs);
     int fd = chdir((const char*) abs);
 
     if (fd == -1) {

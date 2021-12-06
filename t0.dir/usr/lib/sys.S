@@ -175,3 +175,10 @@ getcmd:
 	mov $22,%eax
 	int $48
 	ret
+
+	# int mkdir(char* buff)
+	.global mkdir
+mkdir:
+	mov $23,%eax
+	int $48
+	ret

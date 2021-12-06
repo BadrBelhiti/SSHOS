@@ -3,6 +3,9 @@
 int getcwd(char* buff);
 
 int main(int argc, char** argv) {
+    if (argc != 1) {
+        printf("Usage: ls\n");
+    }
     
     char *buff = (char *) 0x8000c000;
     getcwd(buff);

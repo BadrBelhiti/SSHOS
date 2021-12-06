@@ -184,25 +184,40 @@ bool Ext2::createNode(Shared<Node> dir, const char* name, uint8_t typeIndicator)
     createInode(fileType, inodeNumber);
     createDirectoryEntry(name, inodeNumber, typeIndicator, dir);
 
+    if (typeIndicator == ENTRY_DIRECTORY_TYPE) {
+        Shared<Node> newNode = get_node(inodeNumber  );
+        char buffer[3];
+        char *fileName = buffer;
+        fileName[0] = '.';
+        fileName[1] = 0;
+        createDirectoryEntry(fileName, inodeNumber, ENTRY_DIRECTORY_TYPE, newNode); // creating . entry
+        fileName[1] = '.';
+        fileName[2] = 0;
+        createDirectoryEntry(fileName, dir->number, ENTRY_DIRECTORY_TYPE, newNode); // creating .. entry
+    }
+
     return true;
 }
 
 Shared<Node> Ext2::get_node(uint32_t number) {
-    ASSERT(number > 0);
-    ASSERT(number <= superBlock->inodesPerGroup);
-    auto index = number - 1;
+    // ASSERT(number > 0);
+    // ASSERT(number <= superBlock->inodesPerGroup);
+    // auto index = number - 1;
 
-    auto groupIndex = index / superBlock->inodesPerGroup;
-    //Debug::printf("groupIndex %d\n",groupIndex);
-    ASSERT(groupIndex < numBlockGroups);
-    auto indexInGroup = index % superBlock->inodesPerGroup;
-    auto iTableBase = blockGroupTable[groupIndex].inodeTableAddress;
-    // ASSERT(iTableBase <= numberOfBlocks);
-    auto nodeOffset = iTableBase * get_block_size() + indexInGroup * get_inode_size();
+    // auto groupIndex = index / superBlock->inodesPerGroup;
+    // //Debug::printf("groupIndex %d\n",groupIndex);
+    // ASSERT(groupIndex < numBlockGroups);
+    // auto indexInGroup = index % superBlock->inodesPerGroup;
+    // auto iTableBase = blockGroupTable[groupIndex].inodeTableAddress;
+    // // ASSERT(iTableBase <= numberOfBlocks);
+    // auto nodeOffset = iTableBase * get_block_size() + indexInGroup * get_inode_size();
 
-    auto out = Shared<Node>::make(get_block_size(), number, this);
-    ide->read_all(nodeOffset, 128, (char *) out->inode);
-    return out;
+    // Debug::printf("I made it here bro\n");
+    // auto out = Shared<Node>::make(get_block_size(), number, this);
+    // ide->read_all(nodeOffset, 128, (char *) out->inode);
+    Node *node = new Node(get_block_size(), number, this);
+    return Shared<Node>{node};
+    // return out;
 }
 
 // If the given node is a directory, return a reference to the

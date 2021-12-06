@@ -90,6 +90,8 @@ extern int changedir(const char* fn);
 
 extern int touch(const char *fn);
 
+extern int mkdir(const char *fn);
+
 extern int removeStructure(char *fn);
 
 #endif
