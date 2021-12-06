@@ -43,6 +43,11 @@ namespace gheith {
         uint32_t cr3;                        /* 32 */
     };
 
+    struct Redirection {
+        Shared<Node> output_file;
+        uint32_t offset;
+    };
+
     struct TCB {
         static Atomic<uint32_t> next_id;
         Atomic<uint32_t> next_child_pid{10};
@@ -77,7 +82,7 @@ namespace gheith {
         Shared<Node> dir_inode;
 
         // Used for redirecting stdout. May be null
-        Shared<Node> redirection_output;
+        Redirection *redirection;
 
         char *dir_name;
 
@@ -259,7 +264,7 @@ gheith::TCB *shellProgram(gheith::TCB *parent, uint32_t* pd, uint32_t id, T work
     tcb->pid = id;
     tcb->fs = parent->fs;
     tcb->dir_inode = parent->dir_inode;
-    tcb->redirection_output = parent->redirection_output;
+    tcb->redirection = parent->redirection;
     memcpy(tcb->dir_name, parent->dir_name, K::strlen(parent->dir_name));
     tcb->dir_name[K::strlen(parent->dir_name)] = '\0';
     // Debug::printf("in shell thing %s, %s\n",tcb->dir_name, parent->dir_name );

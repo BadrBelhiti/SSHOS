@@ -39,12 +39,13 @@ class OpenFile {
             auto me = gheith::current();
 
             if (consoleDevice && writeable) { // write to shell
-                if (me->redirection_output == nullptr) {
+                gheith::Redirection *redirect_data = me->redirection;
+                if (redirect_data == nullptr) {
                     for (uint32_t i = 0; i < n; i++) {
                         me->shell->printf("%c", ((char*) buffer)[i]);
                     }
                 } else {
-                    me->redirection_output->write_all(0, (char*) buffer, n);
+                    redirect_data->output_file->write_all(redirect_data->offset, (char*) buffer, n);
                 }
             } else { // write to file
                 vnode->write_all(0, (char *) buffer, n);

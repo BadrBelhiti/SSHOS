@@ -60,7 +60,7 @@ bool CommandRunner::execute(char *cmd) {
     argv[curr_arg++] = first_arg;
 
 
-    bool redirection = false;
+    Redirection *redirect_data = nullptr;
     // Iterate through args
     while (true) {
         if (cmd[curr_index] == ' ' || cmd[curr_index] == 0) {
@@ -72,15 +72,27 @@ bool CommandRunner::execute(char *cmd) {
         }
         if (cmd[curr_index] == 0) break;
         if (cmd[curr_index] == '>') {
-            redirection = true;
+            redirect_data = new Redirection;
             break;
         }
         curr_index++;
     }
 
     // Get output file
-    if (redirection) {
-        curr_index += 2;
+    if (redirect_data != nullptr) {
+        // Skip '>'
+        curr_index += 1;
+        bool append_mode = false;
+
+        // Check if it's append mode ('>>')
+        if (cmd[curr_index] == '>') {
+            append_mode = true;
+            curr_index++;
+        }
+
+        // Skip space after
+        curr_index++;
+
         uint32_t fn_len = 0;
         uint32_t file_start = curr_index;
         while (cmd[curr_index] != 0) {
@@ -115,7 +127,9 @@ bool CommandRunner::execute(char *cmd) {
             return false;
         }
 
-        me->redirection_output = output_vnode;
+        redirect_data->output_file = output_vnode;
+        redirect_data->offset = append_mode ? output_vnode->size_in_bytes() : 0;
+        me->redirection = redirect_data;
     }
 
 
@@ -136,8 +150,10 @@ bool CommandRunner::execute(char *cmd) {
     current()->dir_name[K::strlen(commandProcess->dir_name)] = '\0';
 
     // Reset direction output for shell thread
-    me->redirection_output = nullptr;
-    // Debug::printf("in shell: %s\n", current()->dir_name);
+    if (me->redirection != nullptr) {
+        delete redirect_data;
+        me->redirection = nullptr;
+    }
 
     return true;
 }
