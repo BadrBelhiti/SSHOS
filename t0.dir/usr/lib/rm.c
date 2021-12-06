@@ -9,12 +9,12 @@ int main(int argc, char** argv) {
     char *fileName = argv[1];
 
     if (streq(fileName, ".") || streq(fileName, "..")) {
-        printf("Can't delete . or ..");
+        printf("Bruh\n");
         return -1;
     }
 
     int result = removeStructure(fileName);
     if (result < 0) {
-        printf("Unable to delete file\n");
+        printf("You're not that guy pal\n");
     }
 }

@@ -3,7 +3,7 @@
 int main(int argc, char** argv) {
     const char* name = argv[1];
     
-    touch(name);
+    mkdir(name);
 
     return 0;
 }

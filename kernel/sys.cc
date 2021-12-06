@@ -680,7 +680,7 @@ int shell_theme(int theme) {
     return 0;
 }
 
-int touch(char* fn) {
+int makeStructure(char* fn, uint32_t structureType) {
     TCB *me = current();
     // separate path of directory we're inserting new file in and the new file
     int index = K::strlen((char *) fn) - 1;
@@ -689,18 +689,18 @@ int touch(char* fn) {
     }
 
     Shared<Node> directoryNode = me->dir_inode; // default case: touch "hi"
+    Debug::printf("cur inode number: %d\n", directoryNode->number);
     if (fn[0] == '/') {
         fn[index] = 0;
         directoryNode = me->fs->find(me->fs->root, fn);
-    }
-    else if (index >= 0) {
+    } else if (index >= 0) {
         fn[index] = 0;
         // find directory to insert file in
         directoryNode = me->fs->find(me->dir_inode, fn);
     }
         
     // create file in directory
-    bool res = me->fs->createNode(directoryNode, fn + index + 1, ENTRY_FILE_TYPE);
+    bool res = me->fs->createNode(directoryNode, fn + index + 1, structureType);
     return res ? 1 : -1;
 }
 
@@ -776,7 +776,7 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return chdir((char*) user_stack[1]);
 
         case 18:
-            return touch((char*) user_stack[1]);
+            return makeStructure((char*) user_stack[1], ENTRY_FILE_TYPE);
 
         case 19:
             return readShellLine((char*) user_stack[1]);
@@ -788,8 +788,7 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return getcwd((char*) user_stack[1]);
         
         case 22:
-            return getcmd((char*) user_stack[1], (uint32_t) user_stack[2]);
-        
+            return getcmd((char*) user_stack[1], (uint32_t) user_stack[2]);    
     }
 
     return 0;
