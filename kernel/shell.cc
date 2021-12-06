@@ -47,7 +47,7 @@ void Shell::refresh() {
             video_cursor = scroll_ln(video_cursor, config);
             firstRow += 1;
         }
-        else if (buffer[index] == '\n') {
+        if (buffer[index] == '\n') {
             video_cursor = move_offset_to_new_line(video_cursor);
         } 
         else if (buffer[index] == '\t'){

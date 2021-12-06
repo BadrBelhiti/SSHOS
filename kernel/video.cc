@@ -1,6 +1,8 @@
 #include "video.h"
 #include "shell.h"
 
+/* Inspired by https://dev.to/frosnerd/writing-my-own-vga-driver-22nn */
+
 unsigned char port_byte_in(unsigned short port) {
     unsigned char result;
     __asm__("in %%dx, %%al" : "=a" (result) : "d" (port));

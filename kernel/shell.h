@@ -6,7 +6,7 @@
 
 #define WHITE_ON_BLACK 0x0F
 #define WHITE_ON_BLUE 0x1F
-#define BUF_SIZE 4096
+#define BUF_SIZE 1 << 12
 #define COMMAND_SIZE 100
 
 class BlockingLock;
