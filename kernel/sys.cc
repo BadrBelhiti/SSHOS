@@ -456,6 +456,7 @@ int open(const char* fn) {
     Shared<Node> vnode;
     if (fn[0] != '/') {
         vnode = current()->fs->find(current()->dir_inode, fn);
+        Debug::printf("vnode in open %s: %d\n", fn, vnode);
     } else {
         vnode = find_by_absolute(fn);
     }
@@ -471,6 +472,7 @@ int open(const char* fn) {
 
     // Initialize open file
     open_files[available_id]->vnode = vnode;
+    Debug::printf("id return: %d\n", available_id);
     return available_id;
 }
 
@@ -512,6 +514,7 @@ int read(int fd, void* buffer, ssize_t n) {
     }
 
     if (!is_user((uint32_t) buffer, n)) {
+        Debug::printf("not user\n");
         return -1;
     }
 
@@ -660,6 +663,41 @@ int touch(const char* fn) {
     return res ? 1 : -1;
 }
 
+int copy(char* from, char* to) {
+
+    // create the new file 
+    touch((char *) to);
+
+    int fromFD = open((const char*) from);
+    int toFD = open((const char*) to);
+    Debug::printf("fromFD: %d, toFD: %d\n", fromFD, toFD);
+
+    while (1) {
+        // char buf[100];
+        char *buf = (char *) 0x80002000;
+        // read(int fd, void* buffer, ssize_t n)
+        ssize_t n = read(fromFD,buf,100);
+        if (n == 0) break;
+        if (n < 0) {
+            Debug::printf("*** %s:%d read error, fd = %d\n",__FILE__,__LINE__,fromFD);
+            break;
+        }
+        char *ptr = buf;
+        while (n > 0) {
+            // write(int fd, char* buf, size_t nbytes)
+            ssize_t m = write(toFD,ptr,n);
+            if (m < 0) {
+                Debug::printf("*** %s:%d write error, fd = %d\n",__FILE__,__LINE__,toFD);
+                break;
+            }
+            n -= m;
+            ptr += m;
+        }
+    }
+
+    return 1;
+}
+
 extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
     uint32_t *user_stack = (uint32_t*) frame[3];
 
@@ -727,8 +765,12 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
 
         case 20:
             return removeStructure(user_stack[1], user_stack[2]);
+
         case 21:
             return getcwd((char*) user_stack[1]);
+
+        case 23:
+            return copy((char*) user_stack[1], (char*) user_stack[2]);
     }
 
     return 0;

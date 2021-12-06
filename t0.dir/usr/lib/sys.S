@@ -168,3 +168,10 @@ getcwd:
 	mov $21,%eax
 	int $48
 	ret
+
+	# int copy(char* from, char* to)
+	.global copy
+copy:
+	mov $23,%eax
+	int $48
+	ret

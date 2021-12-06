@@ -22,11 +22,13 @@ class OpenFile {
 
         int read(void *buffer, uint32_t n) {
             if (!this->readable) {
+                // Debug::printf("not readable\n");
                 return -1;
             }
 
             uint32_t to_read = K::min(vnode->size_in_bytes() - offset, n);
             uint32_t actually_read = vnode->read_all(offset, to_read, (char*) buffer);
+            // Debug::printf("to read: %d, actually read: %d\n", to_read, actually_read);
             offset += actually_read;
             return actually_read;
         }
