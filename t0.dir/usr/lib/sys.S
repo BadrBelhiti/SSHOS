@@ -182,3 +182,8 @@ copy:
 	mov $23,%eax
 	int $48
 	ret
+
+mkdir:
+	mov $24,%eax
+	int $48
+	ret
