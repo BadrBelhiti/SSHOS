@@ -20,15 +20,15 @@ class Shell {
         ShellConfig config;
         CommandRunner *cmd_runner;
         BlockingLock *the_lock;
-        char* commands[COMMAND_SIZE];
-        uint32_t commandSizes[COMMAND_SIZE];
-        uint32_t command_count = 0;
         uint32_t currCommand = 0;
         uint32_t curr_cmd_start = 0;
         uint32_t leftShifts = 0;
         uint32_t firstRow = 0;
 
     public:
+        char* commands[COMMAND_SIZE];
+        uint32_t commandSizes[COMMAND_SIZE];
+        uint32_t command_count = 0;
         uint32_t cursor = 0;
         char buffer[BUF_SIZE];
         Shell(bool primitive);

@@ -40,8 +40,8 @@ bool CommandRunner::execute(char *cmd) {
     uint32_t curr_index = program_name_size;
     uint32_t argc = 1;
 
-    while (cmd[curr_index] != 0) {
-        if (cmd[curr_index] == ' ') {
+    while (cmd[curr_index] != 0 && cmd[curr_index] != '>') {
+        if (cmd[curr_index] == ' ' && cmd[curr_index + 1] != '>') {
             argc++;
         }
         curr_index++;
@@ -60,6 +60,7 @@ bool CommandRunner::execute(char *cmd) {
     argv[curr_arg++] = first_arg;
 
 
+    Redirection *redirect_data = nullptr;
     // Iterate through args
     while (true) {
         if (cmd[curr_index] == ' ' || cmd[curr_index] == 0) {
@@ -70,7 +71,65 @@ bool CommandRunner::execute(char *cmd) {
             arg_begin = curr_index + 1;
         }
         if (cmd[curr_index] == 0) break;
+        if (cmd[curr_index] == '>') {
+            redirect_data = new Redirection;
+            break;
+        }
         curr_index++;
+    }
+
+    // Get output file
+    if (redirect_data != nullptr) {
+        // Skip '>'
+        curr_index += 1;
+        bool append_mode = false;
+
+        // Check if it's append mode ('>>')
+        if (cmd[curr_index] == '>') {
+            append_mode = true;
+            curr_index++;
+        }
+
+        // Skip space after
+        curr_index++;
+
+        uint32_t fn_len = 0;
+        uint32_t file_start = curr_index;
+        while (cmd[curr_index] != 0) {
+            fn_len++;
+            curr_index++;
+        }
+
+        if (fn_len == 0) {
+            this->shell->printf("Cannot redirect to null file\n");
+            return false;
+        }
+
+        // fn_len includes line terminator
+        char *fn = new char[fn_len + 1];
+        fn[fn_len] = 0;
+        curr_index = file_start;
+        while (cmd[curr_index] != 0) {
+            fn[curr_index - file_start] = cmd[curr_index];
+            curr_index++;
+        }
+        
+        Shared<Node> output_vnode;
+        // Get by absolute path
+        if (fn[0] == '/') {
+            output_vnode = find_by_absolute(fn);
+        } else {
+            output_vnode = me->fs->find(me->dir_inode, fn);
+        }
+
+        if (output_vnode == nullptr) {
+            this->shell->printf("Redirection output file %s does not exist\n", fn);
+            return false;
+        }
+
+        redirect_data->output_file = output_vnode;
+        redirect_data->offset = append_mode ? output_vnode->size_in_bytes() : 0;
+        me->redirection = redirect_data;
     }
 
 
@@ -89,7 +148,12 @@ bool CommandRunner::execute(char *cmd) {
     current()->dir_inode = commandProcess->dir_inode;
     memcpy(current()->dir_name, commandProcess->dir_name, K::strlen(commandProcess->dir_name));
     current()->dir_name[K::strlen(commandProcess->dir_name)] = '\0';
-    // Debug::printf("in shell: %s\n", current()->dir_name);
+
+    // Reset direction output for shell thread
+    if (me->redirection != nullptr) {
+        delete redirect_data;
+        me->redirection = nullptr;
+    }
 
     return true;
 }

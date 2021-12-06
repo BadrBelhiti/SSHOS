@@ -34,14 +34,21 @@ class OpenFile {
         }
 
         int write(void *buffer, uint32_t n) {
+            auto me = gheith::current();
             if (!this->writeable) {
                 return -1;
             }
 
             if (consoleDevice && writeable) { // write to shell
-                for (uint32_t i = 0; i < n; i++) {
-                    gheith::current()->shell->printf("%c", ((char*) buffer)[i]);
+                gheith::Redirection *redirect_data = me->redirection;
+                if (redirect_data == nullptr) {
+                    for (uint32_t i = 0; i < n; i++) {
+                        me->shell->printf("%c", ((char*) buffer)[i]);
+                    }
+                } else {
+                    redirect_data->output_file->write_all(redirect_data->offset, (char*) buffer, n);
                 }
+                me->shell->refresh();
             } else { // write to file
                 vnode->write_all(0, (char *) buffer, n);
             }

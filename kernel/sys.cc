@@ -346,7 +346,6 @@ int close(int id) {
 }
 
 int shutdown(void) {
-    while(true);
     Debug::shutdown();
     return 0;
 }
@@ -489,23 +488,29 @@ int len(int fd) {
     return open_file->vnode->size_in_bytes();;
 }
 
-int removeStructure(int fd, bool removeFromRoot) {
-    if (fd >= 10 || fd < 0) {
-        return -1;
+int removeStructure(char *fn) {
+    TCB *me = current();
+    // separate path of directory we're inserting new file in and the new file
+    int index = K::strlen((char *) fn) - 1;
+    while (index >= 0 && fn[index] != '/') {
+        index--;
     }
 
-    Shared<OpenFile> open_file = current()->open_files[fd];
-    if (open_file == nullptr) {
-        return -1;
+    Shared<Node> parentNode = me->dir_inode; // default case: touch "hi"
+    if (fn[0] == '/') {
+        fn[index] = 0;
+        parentNode = me->fs->find(me->fs->root, fn);
     }
-
-    if (removeFromRoot) {
-        open_file->vnode->deleteNode(current()->fs->root);
-    } else {
-        open_file->vnode->deleteNode(current()->dir_inode);
+    else if (index >= 0) {
+        fn[index] = 0;
+        // find directory to insert file in
+        parentNode = me->fs->find(me->dir_inode, fn);
     }
-    
-    return 1;
+        
+    // create file in directory
+    Shared<Node> nodeToDelete = me->fs->find(parentNode, fn + index + 1);
+    bool res = nodeToDelete->deleteNode(parentNode);
+    return res ? 1 : -1;
 }
 
 int read(int fd, void* buffer, ssize_t n) {
@@ -572,11 +577,9 @@ int opendir(const char* fn) {
     }
 
     // Directory doesn't exist
-    if (vnode == nullptr) {
+    if (vnode == nullptr || !vnode->is_dir()) {
         return -1;
     }
-
-    ASSERT(vnode->is_dir()); // make sure this is actually a directory lol
 
     // Create open file and add it to process's open files
     open_files[available_id] = Shared<OpenFile>::make(available_id, true, false, false);
@@ -607,7 +610,7 @@ int getcwd(char* buff) {
     return K::strlen(me->dir_name);
 }
 
-int chdir(const char* fn) {
+int chdir(char* fn) {
     // open the directory first
     int fd = opendir(fn);
     if (fd == -1) return -1;
@@ -616,23 +619,50 @@ int chdir(const char* fn) {
     Shared<OpenFile> *open_files = tcb->open_files;
     Shared<Node> node = open_files[fd]->vnode;
 
-    tcb->dir_inode = node;
-    bzero(tcb->dir_name, K::strlen((char*)fn));
-    // bzero(tcb->dir_name, 10);
-    int len = getcwd(tcb->dir_name);
+    int cwdIndex;
+    if (fn[0] == '/') { // dealing with an absolute path. start from root
+        cwdIndex = 0;
+    } else { // dealing with relative path. start from current working directory
+        cwdIndex = K::strlen(tcb->dir_name) - 1;
+    }
+    int fnIndex = 0;
 
-    if (tcb->dir_inode != current()->fs->root) {
-        tcb->dir_name[len] = '/';
-        len++;
+    while (fn[fnIndex] != 0) {
+        int firstIndex = fnIndex;
+        while (fn[fnIndex] != '/' && fn[fnIndex] != 0) {
+            fnIndex++;
+        }
+        // now we have a partition directory to switch to: i.e. data
+        char *directoryPartition = fn + firstIndex;
+        fn[fnIndex] = 0;
+
+        if (K::streq(directoryPartition, "..")) {
+            if (cwdIndex > 0) { // We are not at the root. safe to go up
+                while (tcb->dir_name[cwdIndex] != '/') {
+                    cwdIndex--;
+                }
+                if (cwdIndex > 0) { // we are not at root! get rid of extra slash
+                    cwdIndex--;
+                }
+            }
+        } else if (!K::streq(directoryPartition, ".")) {
+            if (cwdIndex != 0) { // not at root
+                cwdIndex++;
+            }
+
+            tcb->dir_name[cwdIndex] = '/';
+
+            int dirPartLen = K::strlen(directoryPartition);
+            memcpy(tcb->dir_name + cwdIndex + 1, directoryPartition, dirPartLen);
+            cwdIndex += dirPartLen;
+        }
+        fnIndex++; // move on to next argument
     }
 
-    memcpy(tcb->dir_name + len, (char *) fn,  K::strlen((char*)fn));
-    tcb->dir_name[K::strlen((char*)fn) +1] = '\0';
+    // we need to add in null terminator
+    tcb->dir_name[cwdIndex + 1] = 0;
 
-
-
-    // Debug::printf("new directory name: %s\n", tcb->dir_name);
-
+    tcb->dir_inode = node;
     return fd;
 }
 
@@ -652,15 +682,40 @@ int shell_theme(int theme) {
     return 0;
 }
 
-int touch(const char* fn) {
+int touch(char* fn) {
     TCB *me = current();
-    bool res;
-    if (fn[0] == '/') {
-        res = me->fs->createNode(me->fs->root, (char *) fn, ENTRY_FILE_TYPE);
-    } else {
-        res = me->fs->createNode(me->dir_inode, (char *) fn, ENTRY_FILE_TYPE);
+    // separate path of directory we're inserting new file in and the new file
+    int index = K::strlen((char *) fn) - 1;
+    while (index >= 0 && fn[index] != '/') {
+        index--;
     }
+
+    Shared<Node> directoryNode = me->dir_inode; // default case: touch "hi"
+    if (fn[0] == '/') {
+        fn[index] = 0;
+        directoryNode = me->fs->find(me->fs->root, fn);
+    }
+    else if (index >= 0) {
+        fn[index] = 0;
+        // find directory to insert file in
+        directoryNode = me->fs->find(me->dir_inode, fn);
+    }
+        
+    // create file in directory
+    bool res = me->fs->createNode(directoryNode, fn + index + 1, ENTRY_FILE_TYPE);
     return res ? 1 : -1;
+}
+
+int getcmd(char* buff, uint32_t line) {
+    // copy the current command at line into the buffer
+    TCB *me = current();
+    if (line >= me->shell->command_count) {
+        return -1; // error since line needs to be within command count
+    }
+    char* cmd = me->shell->commands[line];
+    int size = (int)me->shell->commandSizes[line];
+    memcpy(buff, cmd, me->shell->commandSizes[line]);
+    return size;
 }
 
 int copy(char* from, char* to) {
@@ -755,15 +810,25 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return readdir(user_stack[1], (char*) user_stack[2], user_stack[3]);
 
         case 17:
-            return chdir((const char*) user_stack[1]);
+            return chdir((char*) user_stack[1]);
 
         case 18:
-            return touch((const char*) user_stack[1]);
+            return touch((char*) user_stack[1]);
 
         case 19:
-            return readShellLine((char *) user_stack[1]);
-
+            return readShellLine((char*) user_stack[1]);
+        
         case 20:
+<<<<<<< HEAD
+            return removeStructure((char*) user_stack[1]);
+        
+        case 21:
+            return getcwd((char*) user_stack[1]);
+        
+        case 22:
+            return getcmd((char*) user_stack[1], (uint32_t) user_stack[2]);
+        
+=======
             return removeStructure(user_stack[1], user_stack[2]);
 
         case 21:
@@ -771,6 +836,7 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
 
         case 23:
             return copy((char*) user_stack[1], (char*) user_stack[2]);
+>>>>>>> implement_cp
     }
 
     return 0;

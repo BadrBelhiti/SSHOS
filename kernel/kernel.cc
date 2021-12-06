@@ -2,6 +2,7 @@
 #include "ext2.h"
 #include "ide.h"
 #include "threads.h"
+#include "network.h"
 
 using namespace gheith;
 
@@ -24,6 +25,9 @@ void kernelMain(void) {
     // me->dir_name[1] = '\0';
 
     me->shell = &shell;
+
+    // Init network driver
+    // Network network{};
 
     // Start shell
     shell.start();
