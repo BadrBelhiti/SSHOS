@@ -222,13 +222,7 @@ public:
 
         // update file size
         int addedBytes = (fileOffset + bytesToWrite) - inode->sizeInBytes;
-<<<<<<< HEAD
         inode->sizeInBytes += addedBytes;
-=======
-        if (addedBytes > 0) {
-            inode->sizeInBytes += addedBytes;
-        }
->>>>>>> 7c629f0452b1ff7c95bbefbe53d059fdaec1c672
         
         // update inode table with new size and other info
         fileSystem->write_all(fileSystem->getInodeTableOffset(number), (char *) inode, fileSystem->get_inode_size());
