@@ -737,6 +737,7 @@ int copy(char* from, char* to) {
             Debug::printf("*** %s:%d read error, fd = %d\n",__FILE__,__LINE__,fromFD);
             break;
         }
+        
         char *ptr = buf;
         while (n > 0) {
             // write(int fd, char* buf, size_t nbytes)
@@ -819,7 +820,6 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
             return readShellLine((char*) user_stack[1]);
         
         case 20:
-<<<<<<< HEAD
             return removeStructure((char*) user_stack[1]);
         
         case 21:
@@ -827,16 +827,9 @@ extern "C" int sysHandler(uint32_t eax, uint32_t *frame) {
         
         case 22:
             return getcmd((char*) user_stack[1], (uint32_t) user_stack[2]);
-        
-=======
-            return removeStructure(user_stack[1], user_stack[2]);
-
-        case 21:
-            return getcwd((char*) user_stack[1]);
 
         case 23:
             return copy((char*) user_stack[1], (char*) user_stack[2]);
->>>>>>> implement_cp
     }
 
     return 0;

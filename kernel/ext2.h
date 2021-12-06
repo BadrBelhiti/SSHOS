@@ -344,6 +344,7 @@ public:
                 auto name = new char[name_length+1];
                 name[name_length] = 0;
                 auto cnt = read_all(offset+8,name_length,name);
+                // Debug::printf("offset: %d, cnt: %d\n", offset, cnt);
                 ASSERT(cnt == name_length);
                 work(inode,name);
                 delete[] name;
